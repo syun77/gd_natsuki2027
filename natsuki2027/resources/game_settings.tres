@@ -1,0 +1,17 @@
+[gd_resource type="Resource" format=3 uid="uid://cg8q5jqsbnmcs"]
+
+[ext_resource type="Script" uid="uid://p71t48q5ese3" path="res://scripts/game_settings.gd" id="1"]
+
+[resource]
+resource_name = "Game Settings"
+script = ExtResource("1")
+double_jump_kick_speed = 300.0
+double_jump_rotation_speed = 3.0
+afterimage_minimum_speed = 100.0
+afterimage_interval = 0.1
+afterimage_lifetime = 1.0
+afterimage_color = Color(1, 0.72156864, 0.8509804, 0.23529412)
+gum_hit_shockwave_radius = 80.0
+gum_hit_shockwave_duration = 0.6
+gum_hit_shockwave_strength = 5.0
+gum_hit_shockwave_opacity = 0.18
