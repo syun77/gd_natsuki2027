@@ -2,7 +2,7 @@
 
 - 配置用画像: `images/items/music_note.png`。32×32px、RGBA透過PNG、単一静止スプライト。Nearestフィルターを使う。
 - 生成原画: `images/items/music_note_source.png`。1254×1254px。built-in imagegenで生成し、アルファを保って最近傍補間で32pxへ縮小。
-- コーラルピンクの八分音符、バーガンディの輪郭、クリーム色のハイライト。日常的な小得点アイテムの候補。プレイヤー接触で回収できる。取得時に10点を加算する。
+- 淡い水色の八分音符、落ち着いた青の輪郭、白に近い水色のハイライト。日常的な小得点アイテムの候補。プレイヤー接触で回収できる。取得時に10点を加算する。
 - 検証: 原画/32px版の透過と寸法、32px版を8倍Nearest表示してシルエットを確認。
 
 ## 最終生成プロンプト（built-in imagegen）
@@ -13,7 +13,7 @@
 
 - 再利用用シーン: `res://scenes/items/music_note.tscn`。Area2Dに32px等倍のSprite2Dを持ち、通常の子シーンとして配置する。画像は `assets/items/music_note.png`。取得時に10点を加算する。ステージでは下記の専用TileSetを使う。
 - `scripts/music_note.gd` がハイライト3秒周期と縦軸回転4秒周期を管理。ハイライトは通常2.4秒、続く0.6秒でsin²の滑らかな山を作り、中央2.7秒で最大になる。シーンツリーのポーズに従う。
-- `shaders/music_note.gdshader` が既存クリーム色の画素だけを最大45%淡いクリームへ混ぜる。外周発光や粒子はない。
+- `shaders/music_note.gdshader` が既存クリーム色の画素だけを最大45%淡い水色へ混ぜる。外周発光や粒子はない。
 - 縦軸回転は正面→右32度→正面→左32度→正面を4秒で往復する。横向きになるまで一周させず、圧縮補正で正面幅を94%以上保つ。最大約2pxの暗い側面と弱い遠近/陰影をシェーダーで描き、奥行きを表現する。元PNGとSprite/Area2Dのscaleは変更しない。Nearestの画素単位サンプリング、透明余白内で完結。
 - 回収判定の位置・半径18px・ルートの変形は固定。見た目の回転は物理に影響しない。
 - 各インスタンスは独立したマテリアルを持つ。初期ワールド位置から周期の位相を決め、列状配置の一斉点滅と回転同期を避ける。
@@ -32,4 +32,8 @@
 
 `Godot --headless --path natsuki2027 --log-file /tmp/music-note-pickup.log --script res://tools/verify_music_note_pickup.gd` で全3ステージの実シーンタイルへの物理接触、箱/非playerグループの除外、ガムレイ対象外、ポーズ中の回収停止、再読込復元、同一フレームでの重複要求による二重通知防止、10点の一度だけの加算、文字の上昇・消滅、タイムアタックのスコアとタイマーの併記を確認する。
 
-数字演出は `scripts/score_popup.gd` をフランスパン・食べ物と共用し、数字はクリーム色・縁取りは白（4px）とする。専用 `resources/score_popup_theme.tres` のDefault Font／Default Font SizeとLabelのColors（Font Color／Font Outline Color）、Constants（Outline Size）で調整する。スクリプト側のスタイル上書きはなく、他のUIテーマとは独立する。得点と表示は `ContactPickup.points`（音符10・フランスパン30）および `FoodCollectible.POINTS`（300）を参照する。ラベルをアイテムの外側に所有させ、回収による削除後も演出を継続する。
+数字演出は `scripts/score_popup.gd` をスター・食べ物と共用し、数字はクリーム色・縁取りは白（4px）とする。専用 `resources/score_popup_theme.tres` のDefault Font／Default Font SizeとLabelのColors（Font Color／Font Outline Color）、Constants（Outline Size）で調整する。スクリプト側のスタイル上書きはなく、他のUIテーマとは独立する。得点と表示は `ContactPickup.points`（音符10・スター30）および `FoodCollectible.POINTS`（300）を参照する。ラベルをアイテムの外側に所有させ、回収による削除後も演出を継続する。
+
+淡い水色の配色は組み込みimagegenで元の八分音符を色編集し、32pxへnearest縮小してゲーム用へ同一コピーする。最終色編集プロンプトは `specs/music-note-pale-blue-prompt.txt`。形・サイズ・配置・取得仕様は維持する。
+
+32px版はalpha128閾値で微小な透明残留を除去し、不可視RGBを黒へ整理する。

@@ -33,7 +33,7 @@ void fragment() {
 	}
 	float highlight = smoothstep(0.62, 0.78, face.g)
 		* (1.0 - smoothstep(0.30, 0.50, face.r - face.g));
-	face.rgb = mix(face.rgb, vec3(1.0, 0.95, 0.86), highlight * shine * 0.45);
+	face.rgb = mix(face.rgb, vec3(0.86, 0.95, 1.0), highlight * shine * 0.45);
 	face.rgb *= 1.0 - abs(turn) * 0.07;
 	float alpha = face.a + side.a * (1.0 - face.a);
 	vec3 color = (face.rgb * face.a + side.rgb * side.a * (1.0 - face.a)) / max(alpha, 0.0001);

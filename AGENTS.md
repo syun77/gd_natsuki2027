@@ -316,8 +316,8 @@
 
 - music_note.gd resolves SoundEffects via `/root/SoundEffects` at pickup: early TileSet scene preloads in headless fixtures can compile before autoload identifiers register. verify_music_note_pickup.gd covers physical contacts across3stages, filtering, gum exclusion, pause/reload and duplicate requests.
 
-- Small score-item baguette artwork is `images/foods/baguette.png`, a standalone 32 × 32 transparent RGBA sprite. Use nearest-neighbor filtering.
-- Baguettes are 100-point contact pickups under each saved stage's `Baguettes` node (3 per stage); keep placements aligned with `scripts/baguette_layout.gd`. Game owns the stage score/HUD and scene reload resets score and pickups. Music notes and baguettes share `contact_pickup.gd`; only baguettes award points. Keep the source and runtime baguette PNG copies identical.
+- Small score-item artwork is a yellow five-point star at `images/items/star.png`, a standalone32×32 transparent RGBA sprite; runtime is assets/items/star.png. Use nearest-neighbor filtering.
+- Stars are30-point contact pickups under each saved stage's `Baguettes` node (3 per stage); keep placements aligned with `scripts/baguette_layout.gd`. Game owns the stage score/HUD and scene reload resets score and pickups. Music notes and baguettes share `contact_pickup.gd`; only baguettes award points. Keep the source and runtime star PNG copies identical.
 
 - Time Attack uses one dedicated 192×24 stage, `scenes/stages/time_attack.tscn`. `tools/build_time_attack_stage.gd` overwrites the saved map with its initial layout. After manual edits, sync Terrain rectangles to the saved TerrainTiles occupancy without rerunning the builder. Game counts active physics time immediately after the entrance animation, freezes it on goal contact, and saves one local best in `user://time_attack_sprint.cfg`. See `specs/time-attack-courses.md`.
 
@@ -395,7 +395,7 @@
 
 - Free falling speed uses Player Movement/max_fall_speed (default600px/s); player.gd caps downward velocity after jump resolution, before contact solving. Any connected gum (taut/slack) bypasses; detach resumes immediately. Horizontal/upward momentum stays unchanged. verify_player.gd covers default/custom cap and detach; coyote compensation fixture raises cap to isolate compensation.
 
-- Notes/baguettes share ContactPickup score_item cue (sounds/item3.wav and identical runtime copy); food retains item.wav via item cue.
+- Notes/stars share ContactPickup score_item cue (sounds/item3.wav and identical runtime copy); food retains item.wav via item cue.
 
 - MapEdit one-way floor category uses OneWayPlatforms on both supported stages; preserve the empty collision-enabled layer in Time Attack and its generator. Source1 atlas x0/1/2/3 means left/middle/right/single. Old imported sessions need a fresh Godot copy to expose newly added layers.
 
@@ -446,3 +446,7 @@
 - Gum arm authority: right-facing art uses LEFT/far hand for gum, RIGHT/near hand on hat; prioritize this over earlier per-asset opposite-hand descriptions. Player is one full-body AnimatedSprite2D, no separate arm/hand renderer. GUM_HANDS samples gum-line origin only;360px/s origin smoothing can briefly lag drawn palm at pose switches. fire/pull/hair/hang/angles all use this arrangement; full-body sheets and hand samples are updated. Idle relaxed, ladder uses both hands.
 
 - Run frames2/6 (1-based) keep far/left arm bent in front like4/8, not dangling behind near hat-holding elbow. Other6 cells preserved; feet y232. Latest edit prompt specs/natsuki-run-arm-2-6-prompt.txt.
+
+- Music-note palette is pale sky-blue with muted blue outline and near-white ice-blue highlight; source images/items/music_note_source.png,32px images/items/music_note.png/runtime assets/items copy identical. Shader shine uses cool highlight vec3(0.86,0.95,1.0).
+
+- The30-point contact pickup uses yellow star art, not food: images/items/star_source.png→star.png and identical runtime assets/items/star.png. Placement/resource identifiers Baguettes/baguette.tscn/baguette_layout.gd remain current; MapEdit label is スター. Radius16,score30,item3.wav and persistence unchanged.

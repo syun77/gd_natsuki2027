@@ -1,3 +1,27 @@
+## 音符を淡い水色へ調整
+
+- Goal/status: 鮮やかな青から淡い水色へ変更。完了。
+- Completed/decisions: 組み込みimagegenで本体を淡い水色・輪郭を落ち着いた青・ハイライトを氷色へ。形状／32px／nearest／取得仕様維持。sourceと32px画像・runtime同一コピー更新。既存冷色shine維持。
+- Files: images/items/music_note{,_source}.png、natsuki2027/assets/items/music_note.png、specs/music-note-pale-blue-prompt.txt、specs/music-note-item-assets.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 原画／32px拡大を目視、現行配色説明を統一。alpha1の青残留を確認し、32px版をalpha128で整形／不可視RGB黒へ整理。32×32RGBA／alpha0–255／runtime byte一致PASS。Godot最終import終了0、verify_music_note PASS。既存sandbox証明書・Mono・editor settings警告あり。git diff --check PASS。
+- Blockers: なし。Next action: ゲームで淡い水色の見やすさを確認。
+
+## フランスパン取得アイテムを黄色スターへ
+
+- Goal/status: 30点アイテムを黄色の★へ変更。完了。
+- Completed/decisions: 組み込みimagegenで五芒星生成、32pxnearest、runtime同一コピー。既存baguette sceneがstar.png参照。旧未使用パンPNG削除。配置識別子Baguettes等は現行プロトコルとして維持、MapEdit表示名のみスター。点数30／半径16／取得音と状態保持は維持。
+- Files: images/items/star{,_source}.png、runtime assets/items/star.png、旧baguettePNG削除、scenes/items/baguette.tscn、tools/mapedit/main.swift、関連仕様／MapEdit README、AGENTS.md、WORKLOG.md、specs/star-item-image-prompt.txt。
+- Verification/refactoring: 生成／32px拡大を目視、32×32RGBA／alpha0–255／source-runtime byte一致PASS。Godot import終了0、verify_stage_select（取得点数／状態保持等）とverify_music_note_pickup PASS。script/parse errorなし、既存sandbox証明書・Mono・editor settings・終了resource警告あり。旧パン画像参照残留なし、MapEditは表示文字列のみ変更を静的確認。現行アートの参照・説明を整理、git diff --check PASS。
+- Blockers: なし。Next action: ゲームで黄色スターを取得し見た目確認。MapEditは再起動で表示名更新。
+
+## 音符アイテムを青系へ
+
+- Goal/status: 音符PNGを青系へ変更。完了。
+- Completed/decisions: 組み込みimagegenで形を保ち青本体／濃紺輪郭／氷色ハイライトへ色編集。原画保存、32pxnearest縮小、runtime同一コピー。shader shine色も淡い水色へ揃える。物理／回収・スコア変更なし。
+- Files: images/items/music_note_source.png、images/items/music_note.png、natsuki2027/assets/items/music_note.png、shaders/music_note.gdshader、specs/music-note-blue-prompt.txt、specs/music-note-item-assets.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 原画／32px拡大を目視、32×32RGBA／alpha0–254／runtime byte一致PASS。生成alpha維持。色仕様とshaderハイライト統一。Godot import終了0、verify_music_note PASS／終了0（位相・発光・回転・sensor固定・pause等）。script/parse errorなし、既存sandbox証明書・Mono・editor settings警告あり。git diff --check PASS。
+- Blockers: なし。Next action: ゲームで青い音符の見やすさを確認。
+
 ## 走り2・6コマ目の奥腕修正
 
 - Goal/status: 左奥腕を4・8コマ目に近い前方曲げ位置へ修正。完了。

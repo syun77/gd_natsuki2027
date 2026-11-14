@@ -221,7 +221,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
 
     private func placementName(for kind: String) -> String {
         let labels = [MapDocument.breakableKind: "破壊可能ブロック", "TerrainTiles": "地形", "OneWayPlatforms": "一方通行床", "GumPassBarriers": "バリア",
-                      "GumAnchors": "ガムアンカー", "Spikes": "即死トゲ", "GumBoxes": "可動ブロック", "Foods": "食べ物", "Baguettes": "フランスパン", "MusicNotes": "音符", MapDocument.checkpointKind: "チェックポイント"]
+                      "GumAnchors": "ガムアンカー", "Spikes": "即死トゲ", "GumBoxes": "可動ブロック", "Foods": "食べ物", "Baguettes": "スター", "MusicNotes": "音符", MapDocument.checkpointKind: "チェックポイント"]
         let name = String(kind.split(separator: "/").last ?? "")
         return canvas.placementStyle(for: kind)?.name ?? labels[kind]
             ?? (name == "PlayerSpawn" ? "スタート" : name == "Exit" ? "ゴール" : name)
