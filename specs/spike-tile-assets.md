@@ -12,7 +12,7 @@ Godot画像コピーは `assets/hazards/restaurant_spikes.png`、専用TileSet�
 
 Gameがプレイヤーカプセルと同じ形・変換を使うShapeCast2Dで、移動前の重なりとPlayer.simulate後の実移動区間を判定する。高速移動と静止中の重なりを検出し、1UP回収ロック中も有効。トゲ側に独立した物理コールバックは持たない。
 
-接触時は消滅エフェクトを0.6秒再生してチェックポイントへ復帰する。Rキー・落下の復帰処理は即時。箱や1UP、接続状態も初期化される。詳細は[player-disappear-effect.md](player-disappear-effect.md)と[checkpoints.md](checkpoints.md)を参照。
+接触時は帽子だけが揺れ落ちる演出を0.6秒再生してチェックポイントへ復帰する。Rキー・落下の復帰処理は即時。箱や1UP、接続状態も初期化される。詳細は[player-death-hat-effect.md](player-death-hat-effect.md)と[checkpoints.md](checkpoints.md)を参照。
 
 ## 動作検証
 

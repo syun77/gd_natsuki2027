@@ -353,9 +353,9 @@ func _die_on_spikes(center: Vector2) -> void:
 	player.hide()
 	player.afterimages.clear()
 	$LandingDustEffect.stop()
-	death_effect = preload("res://scripts/player_disappear_effect.gd").new()
+	death_effect = preload("res://scripts/player_death_effect.gd").new()
 	add_child(death_effect)
-	death_effect.global_position = center
+	death_effect.start(center)
 	camera.global_position = center - player_shape.position
 
 func _begin_death() -> bool:

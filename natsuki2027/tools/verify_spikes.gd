@@ -46,18 +46,37 @@ func verify() -> void:
 	game.player.global_position = center + Vector2(-100, 26)
 	game.player.external_velocity = Vector2(18000, 0)
 	game._physics_process(1.0 / 60.0)
-	check(is_instance_valid(game.death_effect), "Live sweep begins disappearance")
+	check(is_instance_valid(game.death_effect), "Live sweep leaves a death hat")
 	check(not game.player.visible and not game.gum.visible, "Player and gum disappear immediately")
 	check(game.death_effect.global_position.distance_to(center) < 80, "Sweep effect remains at contact, not overshot destination")
 	var effect = game.death_effect
+	var hat_origin: Vector2 = effect.origin
+	check(effect.texture.resource_path == "res://assets/effects/player_death_hat.png", "Death hat uses the approved artwork")
+	check(effect.global_position == hat_origin and effect.hframes == 1 and effect.vframes == 1, "Hat starts at head position as a single sprite")
+	check(effect.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "Hat retains pixel filtering")
 	game._die_on_spikes(center)
 	check(game.death_effect == effect, "Repeated hazard does not duplicate effect")
+	var smoke: Sprite2D = effect.smoke
+	var smoke_origin := smoke.global_position
+	check(smoke.texture.resource_path == "res://assets/effects/player_death_smoke.png" and smoke.frame == 0, "Death immediately starts PixelFX smoke")
+	check(smoke_origin == hat_origin - effect.HEAD_OFFSET, "Smoke covers swept body center")
+	check(smoke.z_index < effect.z_index and smoke.is_set_as_top_level(), "Smoke stays behind hat with independent world transform")
 	var frozen_position: Vector2 = game.player.position
 	game._physics_process(0.3)
-	check(not game.restarting and game.death_effect.frame == 9, "Death plays halfway before reload")
+	check(not game.restarting and is_equal_approx(effect.elapsed, 0.3), "Death retains its 0.6s respawn wait")
+	check(smoke.frame == 9 and smoke.global_position == smoke_origin and smoke.scale == Vector2.ONE and smoke.rotation == 0.0, "Smoke advances at30fps without inheriting hat motion or scale")
 	check(game.player.position == frozen_position, "Dead player cannot simulate movement")
-	game._physics_process(0.31)
+	check(effect.global_position.distance_to(hat_origin + Vector2(0, -12.0 * sin(0.3 / 0.32 * PI / 2.0))) < 0.001, "Hat follows sample initial lift")
+	game._physics_process(0.29)
+	var fall := 0.59 - 0.32
+	var descent := fall * 0.25
+	var expected_y := -12.0 + 62.0 * descent + 10.0 * descent * descent
+	check(not game.restarting and absf(effect.global_position.y - hat_origin.y - expected_y) < 0.001, "Hat uses quarter-speed descent without speeding up for respawn")
+	check(effect.global_position.x > hat_origin.x + 20.0 and effect.rotation < 0.0, "Hat drifts sideways and tilts with wind")
+	game._physics_process(0.02)
+	check(smoke.frame == 18, "Death smoke reaches transparent final frame before respawn")
 	await scene_changed
+	check(not is_instance_valid(smoke), "Scene restart removes smoke with hat")
 	check(is_instance_valid(current_scene) and current_scene != game, "Deferred restart creates new Game once")
 	if is_instance_valid(current_scene):
 		var fresh = current_scene
@@ -73,7 +92,7 @@ func verify() -> void:
 		fresh.add_child(spike)
 		await ticks()
 		fresh._physics_process(1.0 / 60.0)
-		check(is_instance_valid(fresh.death_effect), "Stationary overlap starts disappearance")
+		check(is_instance_valid(fresh.death_effect), "Stationary overlap leaves a death hat")
 		fresh._physics_process(0.61)
 		await ticks()
 	print("Spike verification: ", "PASS" if failures == 0 else "FAIL %d" % failures)

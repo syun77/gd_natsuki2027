@@ -1,3 +1,28 @@
+## PixelFX死亡煙の制作・統合
+
+- Goal/status: 身体を煙で消滅させ帽子を残す演出、制作・統合完了。
+- Completed/decisions: 白〜灰紫の初期縦煙が身体を覆い、膨張→分裂/上昇→縮小/透過で0.6s内に消える。帽子の奥Z7、top_levelで体中心固定、帽子size/動き/復帰0.6sと奈落即時を維持。
+- Files: images/effects/player-death-smoke.mjs、export-player-death-smoke.mjs、player_death_smoke PNG/JSON/contact/GIF、runtime PNG、player_death_effect.gd/.uid（帽子scriptから改名）、game/verify_spikes/specs/AGENTS/WORKLOG。既存差分を保持。
+- Verification: PixelFX skill/authoring/poof/smoke-bombを確認。connected Nodeで3回draft/render/look/refine、中央volume/初期密煙/陰影を調整。PixelFX公式checkロジックをNode VMで実行1pass/0fail/0warn。PNG480×384RGBA/alpha0–254/最終空コマ/runtime byte一致PASS。Godot import終了0、spikes/lives/replay/pause全PASS・終了0。spikesに煙の体中心/描画順/独立transform/コマ0→9→18/復帰時破棄を追加。既存sandbox証明書/Mono/editor保存/旧replay/終了resource警告のみ。指定.agents文書は存在しない。
+- Refactoring: 死亡演出scriptをplayer_death_effectへ統一し全caller/doc同期、hat pose更新名を明示、煙と帽子は同じstep/所有寿命に集約。最終spikes再検証PASS・終了0、git diff --check PASS。
+- Blockers: なし。組込依頼の再確認でGame→player_death_effect→runtime煙PNGの接続とverify_spikes再実行PASS・終了0を確認、追加runtime変更不要。Next action: F5でトゲ死の煙と帽子をプレイ確認。native画面の目視QAは未実施。
+
+## 死亡帽子の表示サイズ調整
+
+- Goal/status: 被っている帽子に合わせ死亡帽子を縮小、完了。
+- Decisions: idleの帽子幅約110px×0.3125≒34px、死亡素材のalpha>=128幅58px。表示倍率0.6で約35pxへ合わせる。揺れの縦倍率に基礎倍率を乗じ、動き/復帰時間は維持。
+- Files: player_death_hat_effect.gd、specs/player-death-hat-effect.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: idle画像目視/素材alpha幅確認。基礎倍率をDISPLAY_SCALEに集約し毎stepで維持。verify_spikes PASS・終了0、git diff --check PASS。既存証明書/旧replay/終了resource警告のみ。Next action: F5でトゲ死亡時のサイズを確認。Blockersなし。
+
+## 死亡時の帽子演出をゲームへ統合
+
+- Goal/status: 承認済みの1/4落下速度の帽子を死亡演出へ統合完了。
+- Completed/decisions: トゲ死の0.6s待機/奈落即時/残機処理を維持。サンプルと同じ実時間の動きを0.6sで打切り復帰、時間圧縮なし。帽子は接触時点の体中心から32px上で開始。旧消滅script/runtime画像を除去、原画はimagesに保持。
+- Files: game.gd、player_death_hat_effect.gd/.uid、images/effectsとruntimeのplayer_death_hat.png、verify_spikes.gd、specs/player-death-hat-effect.md（旧消滅仕様を置換）、spike-tile-assets/death-hat-animation-sample、AGENTS.md、WORKLOG.md。既存差分を保持。
+- Verification: Godot import終了0。spikes/lives/replay/pause_menu全PASS・終了0。spikesは実高速接触/単発生成/帽子/頭位置/浮き/1/4落下/横移動と傾き/0.59s未復帰→0.61s復帰/移動停止。既存sandbox証明書/Mono/editor保存/旧replay/終了resource警告のみ。指定.agents文書は存在しない。
+- Refactoring: 帽子原点/頭offset/時間定数/pose更新をeffectに集約しGameは開始とstepのみを所有。旧effect参照を現行仕様へ同期。最終spikes再検証PASS・終了0、git diff --check PASS、帽子72px RGBA/runtime byte一致PASS。
+- Blockers: なし。Next action: F5でトゲ接触の帽子と復帰テンポをプレイ確認。native画面の目視QAは未実施。
+
 ## 1UP・残機制の実装
 
 - Goal/status: 1UP差替え/残機制の実装・最終検証完了。

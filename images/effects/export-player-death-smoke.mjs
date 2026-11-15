@@ -1,0 +1,13 @@
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import * as mod from './player-death-smoke.mjs';
+import { renderFrames, spriteSheet, contactSheet } from '../../pixelfx/tools/lib/fxlib.mjs';
+const fx = { id: 'player/death-smoke', meta: mod.meta, mod };
+const frames = renderFrames(fx);
+const sheet = spriteSheet(fx, frames, 'player_death_smoke');
+const save = (path, data) => writeFileSync(fileURLToPath(new URL(path, import.meta.url)), data);
+save('player_death_smoke.png', sheet.png);
+save('player_death_smoke.json', JSON.stringify(sheet.json, null, 2) + '\n');
+save('player_death_smoke_contact.png', contactSheet(fx, frames, { max: 19, zoom: 2 }));
+save('../../natsuki2027/assets/effects/player_death_smoke.png', sheet.png);
+console.log(`Exported ${frames.n} death smoke frames at ${frames.fps}fps`);
