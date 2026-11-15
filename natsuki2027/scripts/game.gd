@@ -391,6 +391,7 @@ func _on_checkpoint_reached(checkpoint: Area2D) -> void:
 		return
 	if not checkpoint.activated:
 		SoundEffects.play(&"checkpoint")
+		SoundEffects.play(&"checkpoint_voice")
 	active_checkpoint = get_path_to(checkpoint)
 	checkpoint.activate()
 
@@ -544,6 +545,8 @@ func return_to_title() -> void:
 	pause_menu.close()
 	if get_tree().has_meta(RESPAWN_META):
 		get_tree().remove_meta(RESPAWN_META)
+	preserve_bgm_on_exit = true
+	BackgroundMusic.fade_out(1.0)
 	gum.detach("TITLE")
 	get_tree().call_deferred("change_scene_to_file", "res://scenes/title.tscn")
 
@@ -570,7 +573,7 @@ func _present_results(caption: String, clear_bonus := 0, time_bonus := 0) -> voi
 	pause_menu.close()
 	pause_menu.set_process_input(false)
 	BackgroundMusic.process_mode = Node.PROCESS_MODE_ALWAYS
-	BackgroundMusic.fade_out(1.0)
+	BackgroundMusic.set_results_filter(true)
 	get_tree().paused = true
 	var results := preload("res://scripts/clear_results.gd").new()
 	results.data = result_data.duplicate(true)

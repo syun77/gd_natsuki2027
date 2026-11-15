@@ -526,4 +526,8 @@
 
 - Goal StageExit retains door_close AudioStreamPlayer after full close and keeps active until playing ends; Game must observe active transition inside exit_door.step to call _clear_stage. Do not asynchronously set active=false from finished (Game would skip exit branch). Wait uses actual audio, no timer; pause freezes voice. verify_stage_exit checks full-close waiting, real finished, no repeat/large-delta skip and paused voice.
 
-- Results audio: Game starts BackgroundMusic.fade_out(1.0) when presenting any result; clear_results plays score_item at each non-separator reveal start using ALWAYS voices. BackgroundMusic.start cancels fade and restores volume; verify_time_attack covers pause/fade/reveal/restart.
+- Results audio: Game enables BGM low-pass (effect1/1200Hz) when presenting any result and keeps music processing while paused; return_to_title preserves the Autoload across immediate transition and calls fade_out(1.0); clear_results plays score_item at each non-separator reveal start using ALWAYS voices. BackgroundMusic.start cancels fade, disables low-pass and restores volume; verify_time_attack covers pause/fade/reveal/restart.
+
+- Checkpoint first activation plays checkpoint SE plus checkpoint_voice (assets/sounds/vo_checkpoint.wav); restoration/repeated contact stays silent. BackgroundMusic routes to BGM, checkpoint_voice, one_up_voice (vo_1up.wav) and dead to DUCKING; default_bus_layout.tres BGM compressor sidechains DUCKING (-24dB/8:1/10ms attack/300ms release). Other SE use Master. verify_sound_effects checks routing/layout and single activation.
+
+- OneUpCollectible.collect plays item SE plus one_up_voice only after collection guards; touch and gum reel share this path. verify_lives checks duplicate collection produces one SE/voice pair and DUCKING routing.

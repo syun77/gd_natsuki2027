@@ -1,14 +1,16 @@
 # 効果音
 
-元音源はルートの `sounds/`。checkpoint / crash / dead / door1 / door2 / hit / item / item3 / jump / landing / pull / shoot の12種類の WAV を `natsuki2027/assets/sounds/` にコピーして使用する。
+元音源はルートの `sounds/`。checkpoint / crash / dead / door1 / door2 / hit / item / item3 / jump / landing / pull / shoot / vo_checkpoint / vo_1up の14種類の WAV を `natsuki2027/assets/sounds/` にコピーして使用する。
 
 | 音源 | 再生タイミング |
 | --- | --- |
 | checkpoint | チェックポイントの初回有効化（復帰時は無音） |
+| vo_checkpoint（checkpoint_voice） | チェックポイント初回有効化時に既存SEと同時再生。復帰・再通過は無音。DUCKINGバスへ送る |
 | crash | ガムで破壊可能ブロックを壊した時（1マスにつき1回） |
 | dead | トゲ死亡、落下死亡（手動リスタートは無音） |
 | hit | ガムの接着成功。1UPへの命中も含む |
 | item3（score_item） | 音符・フランスパンの取得確定時、およびリザルト各項目（区切り線を除く）の表示開始時に1回 |
+| vo_1up（one_up_voice） | 1UP獲得確定時に既存item SEと同時に1回再生。接触・ガム回収共通。DUCKINGバスへ送る |
 | item | 1UP獲得確定。接触・ガム回収共通 |
 | jump | 成功したジャンプ。先行入力は実際に跳ぶ時。拒否・床すり抜けは無音 |
 | landing | Player.landed と同じ有効な着地。初期接地は除外 |
@@ -23,6 +25,8 @@ SoundEffects Autoload が非位置依存の AudioStreamPlayer を再生し、終
 
 ## BGM
 
-メインゲーム開始時に BackgroundMusic Autoload（AudioStreamPlayer）が `assets/bgm/bgm_01.mp3` を再生する。MP3 インポート設定で先頭からループする。全ステージと Time Attack に共通。死亡リスポーンでは再生位置を維持して継続する（チェックポイントの有無によらない）。ポーズ中は一時停止し、ゲームシーンを離れると停止、手動リスタート時は先頭から再生する。リプレイ機能は無効化中で、再生シーンのBGMは開始しない。
+メインゲーム開始時に BackgroundMusic Autoload（AudioStreamPlayer）が `assets/bgm/bgm_01.mp3` を再生する。MP3 インポート設定で先頭からループする。全ステージと Time Attack に共通。死亡リスポーンでは再生位置を維持して継続する（チェックポイントの有無によらない）。ポーズ中は一時停止し、タイトルへ戻ると1秒でフェードアウトして停止（タイトル表示は即時）、手動リスタート時は先頭から再生する。リプレイ機能は無効化中で、再生シーンのBGMは開始しない。
 
-リザルト表示開始からBGMを1秒で線形フェードアウトして停止する。フェードと結果項目SEは背景ポーズ中も進行する。次のゲーム開始時はフェードを取り消し通常音量で再生する。
+リザルト表示開始時にBGMバスのローパス（カットオフ1200Hz）を有効にし、BGMはポーズ中も継続する。タイトルへ戻る際に1秒で線形フェードアウトして停止する。次のゲーム開始時はフェードを取り消し、ローパスを無効にして通常音量で再生する。ダッキング用コンプレッサーは常時有効。
+
+BGMは `BGM` バス、チェックポイント・1UPボイスと死亡SE（dead.wav）は `DUCKING` バス、その他SEは `Master` に送る。`default_bus_layout.tres` のBGMコンプレッサーはDUCKINGをサイドチェインに使用（閾値−24dB、比率8:1、アタック10ms、リリース300ms、ゲイン0dB）。ボイスまたは死亡SEの再生中はBGMを圧縮し、終了後に復帰する。両バスはMasterへ出力し、ボイス自体は圧縮しない。

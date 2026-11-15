@@ -1,3 +1,34 @@
+## 1UPボイスとダッキング
+
+- Goal/status: 実装・検証完了。1UP獲得確定時に既存item SEとvo_1up.wavを同時に1回再生。
+- Decisions/completed: OneUpCollectible.collectのガード通過後にone_up_voiceを再生し、接触/ガム回収を共用。共通SoundEffectsでDUCKINGへ送り既存BGM sidechainを使用。
+- Files: scripts/sound_effects.gd・one_up_collectible.gd、assets/sounds/vo_1up.wavとimport、verify_sound_effects.gd・verify_lives.gd、specs/sound-effects.md、AGENTS/WORKLOG。
+- Verification/refactoring: Godot4.5.1 sound_effects/lives/one_up_reel PASS/終了0。全cue音源/バス、二重collectでSE/voice各1回、実playing/DUCKING、ガム回収と残機を確認。最終reviewで音源/バスは共通play、獲得は既存collectへ集約、重複経路なし。git diff --check PASS。既存証明書/終了resource警告のみ。
+- Blockers: なし。Next action: F5で1UP獲得ボイス/BGMダッキングを試聴（聴感未確認）。
+
+## リザルトBGMローパスとタイトル復帰フェード
+
+- Goal/status: 実装・検証完了。全リザルト表示開始時に1200Hzローパスを有効にしてBGM継続、タイトル遷移時に1秒線形フェードしてstop。
+- Decisions/completed: タイトルは即時表示しpreserve_bgm_on_exitでAutoload再生を保持。次runはstartでフィルター解除/フェード取消/音量復元。BGM bus effect0のduck compressor維持、effect1に初期OFFのlow-pass。通常pause→titleも同じfade。
+- Files: scripts/background_music.gd・game.gd、default_bus_layout.tres、verify_time_attack.gd、specs/sound-effects.md・clear-results.md、AGENTS/WORKLOG。
+- Verification/refactoring: Godot4.5.1 time_attack/sound_effects/lives PASS/終了0。結果BGM継続とfilter/cutoff、タイトル中fade進行/1秒終了、途中STARTのfade取消/volume/filter復元を確認。最終reviewでfilter操作をBackgroundMusicに集約、遷移は既存return_to_titleと共用、独自待機timerなし。git diff --check PASS。既存証明書/終了resource警告のみ。
+- Blockers: なし。Next action: F5でリザルト→タイトルの聴感確認（headlessでは未確認）。
+
+## 死亡SEのBGMダッキング
+
+- Goal/status: dead.wavもDUCKINGへ送る変更を実装・検証完了。
+- Completed/decisions: 共通SoundEffectsのバス選択にdeadを追加、既存コンプレッサーを共用。死亡回数/音声寿命/リザルト待機を維持。
+- Files: sound_effects.gd、verify_sound_effects.gd、specs/sound-effects.md、AGENTS/WORKLOG。
+- Verification/refactoring: バス分岐を共通playに保持し最終review済み。Godot4.5.1 sound_effects/lives PASS/終了0、死亡実行時の音源/DUCKING経路とリザルト待機を確認。git diff --check PASS。既存証明書/終了resource警告のみ。Next action: F5で死亡SE中のBGMを試聴（聴感未確認）。Blockers: なし。
+
+## チェックポイント音声とBGMダッキング
+
+- Goal/status: 実装・検証完了。初回チェックポイント通過で既存SEにvo_checkpoint.wavを追加。
+- Completed/decisions: BackgroundMusicはBGM、checkpoint_voiceとdeadはDUCKING、他SEはMaster。既存ユーザー作成bus layoutのcompressorをDUCKING sidechain（-24dB/8:1/attack10ms/release300ms/gain0dB）に設定。復帰/再通過は無音、既存title変更は保持。
+- Files: scripts/sound_effects.gd・background_music.gd・game.gd、default_bus_layout.tres、assets/sounds/vo_checkpoint.wavとimport、verify_sound_effects.gd、specs/sound-effects.md、AGENTS/WORKLOG。
+- Verification/refactoring: Godot4.5.1 sound_effects/checkpoints/time_attack PASS/終了0。バスロード/順序/有効compressor/sidechain/voice経路/初回のみを確認。触った領域を最終review、共通SoundEffectsでroutingを集約、独自音量tweenやtimerを追加せず。git diff --check PASS。既存証明書/終了resource警告あり。BGMフェード/次run復元も回帰検証済み。
+- Blockers: なし。Next action: F5で初回チェックポイント通過時のボイス/BGM復帰を試聴（headlessでは聴感未確認）。
+
 ## リザルト音声演出
 
 - Goal/status: BGM1秒フェードアウトと各項目表示時の音符取得SEを実装・検証完了。

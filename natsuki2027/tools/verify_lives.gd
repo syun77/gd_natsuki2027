@@ -37,8 +37,13 @@ func verify() -> void:
 	var best: float = game.best_time
 	var score: int = game.score
 	pickup.global_position += Vector2(17, -9)
+	var audio := root.get_node("SoundEffects")
+	var voice_count: int = audio.get_child_count()
 	pickup.collect()
 	pickup.collect()
+	check(audio.get_child_count() == voice_count + 2, "1UP SE and voice play once")
+	var voice: AudioStreamPlayer = audio.get_child(-1)
+	check(voice.stream == audio.CLIPS[&"one_up_voice"] and voice.bus == &"DUCKING" and voice.playing, "1UP voice plays through ducking")
 	check(game.lives_remaining == 4 and game.score == score, "1UP increments once with no score")
 	var text_found := false
 	for child in game.get_node("TheaterStage").get_children():

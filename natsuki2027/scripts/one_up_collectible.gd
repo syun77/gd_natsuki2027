@@ -32,6 +32,7 @@ func collect() -> void:
 	ScorePopup.spawn_text(self, "1UP")
 	_update_idle_visibility()
 	SoundEffects.play(&"item")
+	SoundEffects.play(&"one_up_voice")
 	var effect := CollectionEffect.new()
 	# Keep residue outside the scene tile so deleting the item does not delete it.
 	var host := get_parent()

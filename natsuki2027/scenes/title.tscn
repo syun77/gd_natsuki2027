@@ -1,7 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene format=3 uid="uid://bl2mo0py74wvw"]
 
-[ext_resource type="Script" path="res://scripts/title.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/title/title_background.png" id="2"]
+[ext_resource type="Script" uid="uid://nbr2jvdjiry8" path="res://scripts/title.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://sj1lyi3ow855" path="res://assets/title/title_background.png" id="2"]
 
 [sub_resource type="StyleBoxFlat" id="Normal"]
 bg_color = Color(1, 0.13, 0.61, 1)
@@ -12,8 +12,8 @@ border_width_bottom = 4
 border_color = Color(1, 1, 0.94, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
-corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 shadow_color = Color(0.59, 0.35, 0.16, 0.5)
 shadow_size = 3
 shadow_offset = Vector2(0, 5)
@@ -27,8 +27,8 @@ border_width_bottom = 4
 border_color = Color(1, 1, 1, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
-corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 shadow_color = Color(0.29, 0.09, 0.36, 0.7)
 shadow_size = 4
 shadow_offset = Vector2(0, 5)
@@ -42,10 +42,10 @@ border_width_bottom = 3
 border_color = Color(1, 0.96, 0.75, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
-corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
-[node name="Title" type="Control"]
+[node name="Title" type="Control" unique_id=667590880]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -54,23 +54,25 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Artwork" type="Control" parent="."]
-layout_mode = 0
+[node name="Artwork" type="Control" parent="." unique_id=246082320]
+anchors_preset = 0
 offset_right = 1672.0
 offset_bottom = 941.0
 mouse_filter = 2
 
-[node name="Background" type="TextureRect" parent="Artwork"]
+[node name="Background" type="TextureRect" parent="Artwork" unique_id=1567275656]
 texture_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 texture = ExtResource("2")
 expand_mode = 1
-mouse_filter = 2
 
-[node name="Menu" type="VBoxContainer" parent="Artwork"]
+[node name="Menu" type="VBoxContainer" parent="Artwork" unique_id=444370051]
 layout_mode = 0
 offset_left = 366.0
 offset_top = 630.0
@@ -78,35 +80,35 @@ offset_right = 700.0
 offset_bottom = 782.0
 theme_override_constants/separation = 18
 
-[node name="Start" type="Button" parent="Artwork/Menu"]
+[node name="Start" type="Button" parent="Artwork/Menu" unique_id=1576365130]
 custom_minimum_size = Vector2(334, 64)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.29, 0.09, 0.36, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 32
 theme_override_styles/normal = SubResource("Normal")
+theme_override_styles/pressed = SubResource("Selected")
 theme_override_styles/hover = SubResource("Selected")
 theme_override_styles/focus = SubResource("Selected")
-theme_override_styles/pressed = SubResource("Selected")
 text = "START"
 
-[node name="Replay" type="Button" parent="Artwork/Menu"]
+[node name="Replay" type="Button" parent="Artwork/Menu" unique_id=132884089]
 custom_minimum_size = Vector2(334, 64)
 layout_mode = 2
 mouse_default_cursor_shape = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(0.29, 0.09, 0.36, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.43, 0.32, 0.37, 1)
 theme_override_font_sizes/font_size = 32
 theme_override_styles/normal = SubResource("Normal")
-theme_override_styles/hover = SubResource("Selected")
-theme_override_styles/focus = SubResource("Selected")
 theme_override_styles/pressed = SubResource("Selected")
+theme_override_styles/hover = SubResource("Selected")
 theme_override_styles/disabled = SubResource("Disabled")
+theme_override_styles/focus = SubResource("Selected")
 disabled = true
 text = "RELAY再生"
