@@ -74,6 +74,13 @@ func verify() -> void:
 			game._physics_process(game.entrance.TOTAL_TIME)
 		check(game.lives_remaining == expected, "Death reload preserves decremented life")
 	check(game.lives_label.text == "LIFE × 0", "Last active life displays0")
+	check(game.lives_blink != null and game.lives_label.modulate.g < 0.3, "Zero reserves starts red blink")
+	game.lives_blink.stop()
+	game.lives_blink.custom_step(0.36)
+	check(game.lives_label.modulate == Color.WHITE, "Zero reserve blink switches to opaque white")
+	game.lives_blink.custom_step(0.35)
+	check(game.lives_label.modulate == Color(1.0, 0.2, 0.2), "Zero reserve blink switches back to opaque red")
+	game.lives_blink.play()
 	game.elapsed = 20.0
 	game.player.position.y = game.settings.restart_y + game.fall_restart_offset + 1.0
 	game._physics_process(1.0 / 60.0)
@@ -100,6 +107,7 @@ func verify() -> void:
 	game._update_lives()
 	game.get_node("TheaterStage/Foods").get_child(0).collect()
 	check(game.lives_remaining == 2 and game.lives_label.text == "LIFE × 1", "1UP rescues zero reserve state")
+	check(game.lives_blink == null and game.lives_label.modulate == Color.WHITE, "1UP clears warning and restores normal color")
 	game._die_on_spikes(game.player.global_position)
 	game._physics_process(2.0)
 	await frames()

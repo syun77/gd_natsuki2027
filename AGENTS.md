@@ -201,7 +201,7 @@
 
 - Speed afterimages: Player calls player_afterimages.gd after animation/deformation, using actual fixed-step world displacement speed (default100px/s). Frozen nearest-filtered Sprite2D snapshots fade1s, interval0.1s, max8; shared Player Afterimages settings. Child lifecycle clears on restart; run tools/verify_player_afterimages.gd.
 
-- 1UP scene tiles use assets/items/one_up_tileset.tres on Foods. All11 alternative IDs instantiate scenes/items/one_up.tscn;32px image/36px pickup radius. stage_layout.gd ONE_UPS owns36 fixture placements. Keep Foods IDs/cells for MapEdit; never regenerate manually edited maps.
+- 1UP scene tiles use assets/items/one_up_tileset.tres on Foods. All11 alternative IDs instantiate scenes/items/one_up.tscn;32px image at Sprite2D scale2 (64px display)/36px pickup radius. stage_layout.gd ONE_UPS owns36 fixture placements. Keep Foods IDs/cells for MapEdit; never regenerate manually edited maps.
 
 - Top-level afterimage sprites use absolute Z one below the source artwork's accumulated CanvasItem Z; show_behind_parent alone does not establish their order behind Player.
 
@@ -484,3 +484,11 @@
 - Death hat visual sample: `images/samples/natsuki_death_hat/preview.gif` (13.44s loop, quarter-speed descent; sway period 1.25s), transparent `hat_source.png`, reproducible Pillow `render_sample.py`; see `specs/death-hat-animation-sample.md`. Runtime `player_death_effect.gd` uses the same motion with `assets/effects/player_death_hat.png`; Game shows it for0.6s then respawns/ends the run. Display scale0.6 gives ~35px opaque width matching idle hat; preserve this base scale when applying flutter pitch. Head offset is32px above swept body center. Fall/R remain immediate. See specs/player-death-hat-effect.md and verify_spikes.gd. Navy ribbon belongs to hat, yellow ribbon belongs to hair.
 
 - Death smoke uses PixelFX `images/effects/player-death-smoke.mjs`; rebuild PNG/JSON/contact/runtime with `export-player-death-smoke.mjs` (connected Node import works when shell node is absent).96px cells/5×4/19frames/30fps/0.6s/pivot48. `player_death_effect.gd` steps it with hat; smoke child is top_level/world-fixed at body center/Z7, hat Z8. Preserve independent smoke scale/rotation and0.6s respawn. verify_spikes covers transforms/frames/lifecycle; run lives/replay/pause too.
+
+- 1UP帽子のゲーム内表示はSprite2Dのみscale(2,2)、32px原画を64px表示。Foodsセル中心と取得/ガム判定半径36pxは維持する。
+
+- Replay owns BackgroundMusic.start on valid playback entry and stop on exit; restart begins music anew, pause/end menu uses the existing tree pause behavior. Game retains independent death-reload continuity. verify_replay.gd covers entry/restart/title entry/exit music lifecycle.
+
+- LIFE × 0 warning is owned by Game._update_lives: bound looping Tween alternates opaque white/red every0.35s (0.7s cycle); tree pause freezes it, 1UP restoring reserves kills tween and resets white. verify_lives.gd covers blink/recovery.
+
+- Clear results proposal is specs/clear-results.md (not implemented): note/star counts at10/30 points plus one-time1000 clear bonus, preserved across death; proposed final replay capture follows bonus. Distinguish this proposal from current runtime.

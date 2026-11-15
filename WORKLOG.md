@@ -1,3 +1,35 @@
+## クリアリザルト仕様検討
+
+- Goal/status: 音符/★取得数とクリアボーナス+1000を表示するリザルト仕様案を作成完了。runtime変更なし。
+- Completed/decisions: 現行音符10点/★30点、取得状態/scoreの死亡保持、クリア後TIME/BESTとreplay/retry表示を確認。取得数別集計は未実装。要求事項と推奨UIを区別する。
+- Files: specs/clear-results.md、AGENTS.md、WORKLOG.md。
+- Verification: game/contact_pickup/replay_storeと既存アイテム仕様を照合。内訳/合計、死亡保持/重複防止、ポーズ中BGM、最終リプレイscore、保存失敗をレビュー。git diff --check PASS。仕様のみのためruntimeテスト対象なし。
+- Blockers: なし。Next action: 実装依頼時に種別別集計/死亡保存/bonus/結果UIと関連検証をまとめて実装する。
+
+## 残機ゼロの白赤点滅
+
+- Goal/status: LIFE × 0を透過させず白赤で点滅。完了。
+- Completed/decisions: 0.35秒ごとに不透明な白/赤へ即時切替、周期0.7秒。既存Tweenの所有/ポーズ/1UP解除を維持。
+- Files: game.gd、verify_lives.gd、specs/one-up-and-lives.md、AGENTS.md。既存差分を保持。
+- Verification/refactoring: 透明度Tweenを間隔+色切替へ整理し仕様/検証を同期。最終レビュー後verify_lives.gd PASS/終了0（不透明白→不透明赤と1UP解除を確認）、git diff --check PASS。既存証明書警告のみ。
+- Blockers: なし。Next action: F5で白赤の点滅を目視確認。
+
+## リプレイBGM再生
+
+- Goal/status: リプレイでも共通BGMを再生する。完了。
+- Completed/decisions: 有効Replay開始で共通BGM開始、退出で停止。再生リスタートは曲も先頭から、ポーズ/終了メニューは既存tree pauseを利用。Gameの死亡継続処理を維持。
+- Files: replay_player.gd、background_music.gd、verify_replay.gd、specs/sound-effects.md、AGENTS.md。既存作業差分を保持。
+- Verification/refactoring: lifecycle所有をReplayのentry/exitへ集約し重複なしを確認。Godot --headless --path natsuki2027 --log-file /tmp/replay-bgm.log --script res://tools/verify_replay.gd PASS/終了0（Game/タイトルから開始・再開始・退出BGMを追加検証）。git diff --check PASS。既存証明書/終了resource警告と意図的保存失敗/不正replay警告のみ。指定.agents/ツール作成.mdは存在しない。
+- Blockers: なし。Next action: 実機でリプレイのBGMを試聴。
+
+## 1UP帽子を2倍表示
+
+- Goal/status: 小さい1UP帽子を約2倍へ。実装・検証完了。
+- Completed/decisions: one_up.tscnのSprite2Dのみscale(2,2)、原画32pxを64px表示。Area/取得半径36px/配置中心/ガム回収は維持。全11配置IDは共通sceneのため同時反映。
+- Files: one_up.tscn、specs/one-up-item-assets.md/one-up-item-art.md、AGENTS.md、WORKLOG.md。別作業差分を保持。
+- Verification/refactoring: 描画nodeだけに倍率を限定し物理形状の独立を確認。verify_one_up_collectibles/verify_one_up_reelともPASS・終了0、git diff --check PASS。
+- Blockers: なし。Next action: F5で1UPの64px表示を確認。
+
 ## PixelFX死亡煙の制作・統合
 
 - Goal/status: 身体を煙で消滅させ帽子を残す演出、制作・統合完了。

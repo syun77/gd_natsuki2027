@@ -1,6 +1,6 @@
 # 1UPアイテム素材と配置
 
-`images/items/one_up_hat.png` とGodot用 `assets/items/one_up_hat.png` は32×32 RGBAの同一画像。試作 `images/items/one_up_hat_trial_source.png` の可視領域をNearestで30px以内に収め、透明余白付き32pxへ正規化した。白い夏帽子・紺帯・黄色リボンと1UP文字。最近傍で等倍表示する。
+`images/items/one_up_hat.png` とGodot用 `assets/items/one_up_hat.png` は32×32 RGBAの同一画像。試作 `images/items/one_up_hat_trial_source.png` の可視領域をNearestで30px以内に収め、透明余白付き32pxへ正規化した。白い夏帽子・紺帯・黄色リボンと1UP文字。Sprite2Dのみ2倍にし、最近傍で64×64px表示する。配置中心と半径36pxの取得・ガム命中判定は維持する。
 
 ステージの `Foods` TileMapLayerと配置セル・source0/alternative0〜10はマップ/エディタの現行データ契約として保持する。全11IDとも `scenes/items/one_up.tscn` を生成する。同じシーンを使うため、どのIDでペイントしても効果は同じ。専用TileSetは `assets/items/one_up_tileset.tres`。MapEditではカテゴリ/候補とも「1UP」。既存編集セッションのセルもそのまま取り込める。検証マップは36配置。生成原本は `stage_layout.gd` の `ONE_UPS`。手編集マップを生成器で上書きしない。
 

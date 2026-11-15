@@ -112,6 +112,7 @@ func verify() -> void:
 	game.pause_menu.buttons[3].pressed.emit()
 	await wait_frames(5)
 	var replay = current_scene
+	check(root.get_node("BackgroundMusic").playing, "Replay starts background music")
 	check(replay.scene_file_path == "res://scenes/replay.tscn" and not paused, "Game menu launches unpaused replay")
 	check(replay.get_node_or_null("Player") == null and replay.get_node_or_null("TheaterStage") == null, "Playback has no live gameplay scene")
 	check(not replay.visuals.is_empty(), "Replay renders recorded visuals")
@@ -161,10 +162,12 @@ func verify() -> void:
 	await wait_frames()
 	replay = current_scene
 	check(not replay.finished and not paused, "Replay can restart from menu")
+	check(root.get_node("BackgroundMusic").playing, "Replay restart starts background music")
 	replay.pause_menu.open()
 	replay.pause_menu.buttons[1].pressed.emit()
 	await wait_frames()
 	check(current_scene.scene_file_path == "res://scenes/title.tscn" and not paused, "Replay back returns to title")
+	check(not root.get_node("BackgroundMusic").playing, "Leaving replay stops background music")
 	var menu_buttons := current_scene.find_children("*", "Button", true, false)
 	var replay_button: Button
 	for button in menu_buttons:
@@ -174,6 +177,7 @@ func verify() -> void:
 	replay_button.pressed.emit()
 	await wait_frames()
 	check(current_scene.scene_file_path == "res://scenes/replay.tscn", "Mode menu launches replay")
+	check(root.get_node("BackgroundMusic").playing, "Title replay starts background music")
 	# Manual retry starts a new run while retaining the previous completed run.
 	paused = false
 	change_scene_to_file("res://scenes/game.tscn")

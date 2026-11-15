@@ -12,6 +12,9 @@ var score: Label
 var timer: Label
 var pause_menu: CanvasLayer
 
+func _exit_tree() -> void:
+	BackgroundMusic.stop()
+
 func _ready() -> void:
 	camera = Camera2D.new()
 	add_child(camera)
@@ -38,6 +41,7 @@ func _ready() -> void:
 	if not ReplayStore.available():
 		_back()
 		return
+	BackgroundMusic.start()
 	_apply_frame(ReplayStore.latest.frames[0])
 	cursor = 1
 

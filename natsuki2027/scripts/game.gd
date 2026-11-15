@@ -24,6 +24,7 @@ var lives_remaining := INITIAL_LIVES
 var dying := false
 var game_over := false
 var lives_label: Label
+var lives_blink: Tween
 var cleared := false
 var exit_door: Sprite2D
 var entrance: Sprite2D
@@ -150,6 +151,19 @@ func _add_life() -> void:
 
 func _update_lives() -> void:
 	lives_label.text = "LIFE × %d" % maxi(lives_remaining - 1, 0)
+	if lives_remaining <= 1:
+		if lives_blink == null:
+			lives_label.modulate = Color(1.0, 0.2, 0.2)
+			lives_blink = create_tween().set_loops()
+			lives_blink.tween_interval(0.35)
+			lives_blink.tween_property(lives_label, "modulate", Color.WHITE, 0.0)
+			lives_blink.tween_interval(0.35)
+			lives_blink.tween_property(lives_label, "modulate", Color(1.0, 0.2, 0.2), 0.0)
+	else:
+		if lives_blink != null:
+			lives_blink.kill()
+			lives_blink = null
+		lives_label.modulate = Color.WHITE
 
 func can_collect() -> bool:
 	return not (dying or game_over or cleared or restarting or (is_instance_valid(exit_door) and exit_door.started))
