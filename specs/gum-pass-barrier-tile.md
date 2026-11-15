@@ -28,3 +28,7 @@ TileSet physics index2、物理ビット64（Inspectorレイヤー7、GumPassBar
 ```text
 Precisely edit the supplied RGBA glass tile: reduce ONLY the brightness of the white diagonal reflection pixels slightly (15-20 percent), to a soft pale blue-gray. Everything else unchanged. Especially preserve the original image alpha channel: blue pane is extremely translucent (about10 percent opacity), NOT opaque; preserve the original bright silver frame and original transparent blue pane exactly. No dark blue fill. No new elements. Keep same square tile position, dimensions and framing. Pixel-art game asset. Render real alpha transparency.
 ```
+
+## MapEditでの配置
+
+レストランと Time Attack は専用 `GumPassBarriers` レイヤーを持ち、MapEditの「バリア」でsource3/(0,0)を配置・消去できる。Time Attackの初期レイヤーは空で、配置は編集者が決める。Godotからコピーし、MapEditで編集して送信・反映したあとシーンを保存する。古い作業セッションは更新済みステージからコピーし直す。

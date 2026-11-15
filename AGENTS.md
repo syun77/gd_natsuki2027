@@ -450,3 +450,17 @@
 - Music-note palette is pale sky-blue with muted blue outline and near-white ice-blue highlight; source images/items/music_note_source.png,32px images/items/music_note.png/runtime assets/items copy identical. Shader shine uses cool highlight vec3(0.86,0.95,1.0).
 
 - The30-point contact pickup uses yellow star art, not food: images/items/star_source.png→star.png and identical runtime assets/items/star.png. Placement/resource identifiers Baguettes/baguette.tscn/baguette_layout.gd remain current; MapEdit label is スター. Radius16,score30,item3.wav and persistence unchanged.
+
+- MapEditの「バリア」はガムが接着せず貫通する透明ブロック。両ステージのGumPassBarriersレイヤー（source3）で配置可能。Time Attackも空レイヤーを保持すること。MapEdit交換は存在するレイヤーだけを列挙するため、レイヤーを消すと配置項目も消える。
+
+- 移動床はmoving_platform.gd/sceneのAnimatableBody2D、Gameが固定stepを所有、sync_to_physics=true。layer8の一方通行上面、ガム貫通。移動マス数と床横幅は独立。両stageのMovingPlatforms配下、Time Attack終盤に横/縦2台。specs/moving-platforms.mdとverify_moving_platform/verify_moving_platform_exchange参照。
+
+- 移動床専用9-slice画像はimages/tilesets/restaurant_moving_platform.pngと同一runtimeコピー（64×10RGBA）。余白L/R8、T/B2px、nearest、幅32px以上・高さ10px固定で中央横伸長。原画と32/96/192pxプレビューを併置。仕様はspecs/moving-platforms.md。
+
+- MapEdit交換形式はversion2。movingPlatforms配列とsourceへ個別id/始点/移動設定を保持し、三者merge・Undo/Redo対象。移動床のsleep剛体運搬には上面近くのwakeが必要（Godot4.5.1）；constant_linear_velocityの追加は二重速度になるため使わない。リプレイ描画形式もversion2でnine_patchを記録する。
+
+- 移動床の自動carry/floor snapはis_on_floor=trueでもslide contacts空になる。Playerは直前の移動床を保持し、エンジン支持中だけUP法線で重力整理・摩擦を処理して、歩き離脱でも床速度をexternalへ一度引継ぐ。verify_moving_platformの左右walk-off回帰を保持。
+
+- Gameのポーズメニュー末尾にチェックポイント移動（デバッグ）。PlayerSpawnからの直線距離順（同距離NodePath順）に番号付けし、既存restart(true)で選択地点へ復帰。debug_checkpoint_usedを死亡metaで保持し、DEBUG TIME表示／自己ベスト更新除外。手動retryで解除。verify_debug_checkpoints.gd参照。
+
+- 移動床のコリジョンは表示幅より左右各4px広い（COLLISION_OVERHANG、幅3マス=画像96/判定104px）。厚5px・上面高・中央は維持。wake帯も同じ幅、Player床抜けはMovingPlatform.support_rect()を使う。既定scene形状とverify_moving_platformの実端/幅検査を同期する。コヨーテはユーザー実走で移動床でも有効と確認済み。

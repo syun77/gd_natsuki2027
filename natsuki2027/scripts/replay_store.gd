@@ -1,7 +1,7 @@
 extends Node
 ## Visual fixed-step recording: playback never runs gameplay or physics.
 const SAVE_PATH := "user://latest_replay.dat"
-const FORMAT_VERSION := 1
+const FORMAT_VERSION := 2
 var save_path := SAVE_PATH
 var sounds: Array = []
 var frames: Array = []
@@ -132,6 +132,9 @@ func _collect(node: Node, result: Dictionary) -> void:
 	var data: Dictionary = {}
 	if node.has_method("replay_particles"):
 		data = {"kind": "particles", "circles": node.replay_particles()}
+	elif node is NinePatchRect and node.texture != null:
+		data = {"kind": "nine_patch", "texture": node.texture.resource_path, "size": node.size,
+			"margins": Vector4i(node.patch_margin_left, node.patch_margin_top, node.patch_margin_right, node.patch_margin_bottom)}
 	elif node is Label:
 		data = {"kind": "label", "text": node.text, "theme": node.theme.resource_path if node.theme != null else "", "size": node.size}
 	elif node is Sprite2D and node.texture != null:
@@ -224,6 +227,7 @@ func _valid_visual(data: Variant) -> bool:
 	var fields: Dictionary
 	match data.get("kind"):
 		"sprite": fields = {"texture": TYPE_STRING, "region": TYPE_RECT2, "offset": TYPE_VECTOR2, "centered": TYPE_BOOL, "flip_h": TYPE_BOOL, "flip_v": TYPE_BOOL}
+		"nine_patch": fields = {"texture": TYPE_STRING, "size": TYPE_VECTOR2, "margins": TYPE_VECTOR4I}
 		"tiles": fields = {"tileset": TYPE_STRING, "cells": TYPE_PACKED_BYTE_ARRAY}
 		"line": fields = {"points": TYPE_PACKED_VECTOR2_ARRAY, "width": TYPE_FLOAT, "color": TYPE_COLOR}
 		"polygon": fields = {"points": TYPE_PACKED_VECTOR2_ARRAY, "color": TYPE_COLOR}

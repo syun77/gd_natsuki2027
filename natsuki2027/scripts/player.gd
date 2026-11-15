@@ -1,5 +1,6 @@
 extends CharacterBody2D
 ## Feet-origin controller. Game calls simulate() once after gum forces each physics tick.
+const MovingPlatform = preload("res://scripts/moving_platform.gd")
 signal landed(point: Vector2, normal: Vector2, impact_speed: float, surface: Node2D)
 
 # Source crop is larger than the 256px sheets; match head size without stretching the tuck.
@@ -35,6 +36,8 @@ var double_jump_spinning := false
 var double_jump_rotation := 0.0
 var drop_through_remaining := 0.0
 var drop_through_clear_y := 0.0
+var drop_through_platforms: Array[Node2D] = []
+var moving_floor: MovingPlatform
 var ladder: Node2D
 var ladder_wait_release := false
 var ladder_ignoring_one_way := false
@@ -120,6 +123,7 @@ func on_gum_attached() -> void:
 
 func reset_motion() -> void:
 	hair_pull_active = false
+	moving_floor = null
 	_leave_ladder()
 	jump_buffer_remaining = 0.0
 	_stop_double_jump_spin()
@@ -143,10 +147,16 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 	jump_buffer_remaining = maxf(minf(jump_buffer_remaining, settings.jump_buffer_time) - delta, 0.0)
 	if jump_requested:
 		jump_buffer_remaining = settings.jump_buffer_time
+	var departing_platform := _moving_support() if drop_through_remaining <= 0.0 else null
+	var departing_velocity: Vector2 = departing_platform.motion_velocity if departing_platform != null else Vector2.ZERO
 	_update_drop_through(delta)
 	if jump_requested and Input.is_action_pressed("aim_down") and _can_drop_through():
 		jump_buffer_remaining = 0.0
 		drop_through_remaining = 0.5
+		drop_through_platforms.clear()
+		for contact in _slide_contacts():
+			if contact.body is MovingPlatform:
+				drop_through_platforms.append(contact.body)
 		# Restore collision after the whole 52px capsule clears the 5px shelf.
 		drop_through_clear_y = global_position.y + 58.0
 		set_collision_mask_value(4, false)
@@ -269,6 +279,8 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 		collision_contacts.append_array(_slide_contacts())
 		if is_on_floor():
 			collision_contacts.append({"normal": get_floor_normal()})
+	if is_on_floor() and is_instance_valid(departing_platform) and collision_contacts.is_empty():
+		collision_contacts.append({"normal": Vector2.UP})
 	# Resolve support against the contacted face, rather than the rounded capsule corner.
 	var support_normal := get_floor_normal() if is_on_floor() else up_direction
 	for contact in collision_contacts:
@@ -295,6 +307,12 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 			if not impulse.is_zero_approx():
 				pending_impulses.append({"body": body, "point": contact.point, "normal": normal,
 					"impulse": impulse, "kind": "support"})
+	if is_instance_valid(departing_platform) and not is_on_floor():
+		for contact in collision_contacts:
+			var normal := _support_face_normal(contact)
+			if departing_velocity.dot(normal) < 0.0:
+				departing_velocity = departing_velocity.slide(normal)
+		external_velocity += departing_velocity
 	_update_landing_event(delta, grounded, before_position, landing_incoming, compression_recovered)
 	_apply_ground_friction(delta, support_normal)
 	_apply_rigid_impulses(pending_impulses)
@@ -355,6 +373,23 @@ func _update_ladder(jump_requested: bool) -> bool:
 		landing_air_distance = 0.0
 	return ladder_jump
 
+func _moving_support() -> MovingPlatform:
+	if not is_on_floor():
+		moving_floor = null
+		return null
+	for contact in _slide_contacts():
+		if _is_support_normal(_support_face_normal(contact)):
+			moving_floor = contact.body as MovingPlatform
+			return moving_floor
+	# Automatic platform carry/floor snap can report floor without a slide collision.
+	return moving_floor if is_instance_valid(moving_floor) else null
+
+func _overlaps_dropped_platform(platform: MovingPlatform) -> bool:
+	var surface := platform.support_rect()
+	var capsule := Rect2(global_position - Vector2(10, 52), Vector2(20, 52))
+	# Retain the exception until the capsule is below the moving top or beside it.
+	return capsule.end.x > surface.position.x and capsule.position.x < surface.end.x and capsule.position.y < surface.end.y
+
 func _can_drop_through() -> bool:
 	if not is_on_floor() or drop_through_remaining > 0.0:
 		return false
@@ -374,6 +409,11 @@ func _update_drop_through(delta: float) -> void:
 	drop_through_remaining = maxf(drop_through_remaining - delta, 0.0)
 	if global_position.y >= drop_through_clear_y:
 		drop_through_remaining = 0.0
+	for platform in drop_through_platforms:
+		if is_instance_valid(platform) and _overlaps_dropped_platform(platform):
+			drop_through_remaining = maxf(drop_through_remaining, delta)
+	if drop_through_remaining <= 0.0:
+		drop_through_platforms.clear()
 	if drop_through_remaining <= 0.0 and not ladder_ignoring_one_way:
 		set_collision_mask_value(4, true)
 
@@ -400,6 +440,8 @@ func _update_landing_event(delta: float, was_grounded: bool, before_position: Ve
 				if state != null:
 					var radius: Vector2 = contact.point - (state.transform.origin + state.center_of_mass)
 					surface_velocity = state.linear_velocity + Vector2(-radius.y, radius.x) * state.angular_velocity
+			elif body is MovingPlatform:
+				surface_velocity = body.motion_velocity
 			elif body is StaticBody2D:
 				surface_velocity = body.constant_linear_velocity
 			var speed := maxf(0.0, -(incoming - surface_velocity).dot(normal))
@@ -820,6 +862,10 @@ func _support_face_normal(contact: Dictionary) -> Vector2:
 	var body = contact.get("body")
 	if normal.dot(up_direction) <= 0.0 or not contact.has("shape"):
 		return normal
+	if body is MovingPlatform:
+		# Native one-way contacts only support the horizontal top. Its synchronized
+		# server transform can be one tick ahead of the visible node transform.
+		return Vector2.UP
 	if body is TileMapLayer:
 		return _tile_support_face_normal(contact)
 	if not body is CollisionObject2D:

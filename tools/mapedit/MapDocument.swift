@@ -24,9 +24,50 @@ struct Palette: Codable {
     let labels: [String]?
 }
 
+struct MovingPlatform: Codable, Equatable {
+    var id: String
+    var x: Int
+    var y: Int
+    var direction: String = "right"
+    var travel_cells: Int = 4
+    var width_cells: Int = 3
+    var speed: Double = 64
+    var endpoint_wait: Double = 0
+
+    static let kind = "MovingPlatforms"
+    static let directions = ["up", "down", "left", "right"]
+    var offset: GridPoint {
+        switch direction {
+        case "up": return GridPoint(x: 0, y: -travel_cells)
+        case "down": return GridPoint(x: 0, y: travel_cells)
+        case "left": return GridPoint(x: -travel_cells, y: 0)
+        default: return GridPoint(x: travel_cells, y: 0)
+        }
+    }
+    func contains(_ point: GridPoint) -> Bool {
+        point.y == y && (x..<(x + width_cells)).contains(point.x)
+    }
+    func validate(width: Int, height: Int) throws {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
+        guard !id.isEmpty, id.utf8.count <= 64, id.unicodeScalars.allSatisfy({ allowed.contains($0) && $0.isASCII }),
+              Self.directions.contains(direction), (0..<width).contains(x), (0..<height).contains(y),
+              (1...width).contains(travel_cells),
+              (1...width).contains(width_cells), speed.isFinite, (32...160).contains(speed),
+              endpoint_wait.isFinite, (0...5).contains(endpoint_wait) else {
+            throw MapError("移動床の設定が不正です。")
+        }
+        for point in [GridPoint(x: x, y: y), GridPoint(x: x + offset.x, y: y + offset.y)] {
+            guard point.x >= 0, point.x <= width - width_cells, (0..<height).contains(point.y) else {
+                throw MapError("移動床の始点または終点がマップ範囲外です。")
+            }
+        }
+    }
+}
+
 struct SourcePlacements: Codable {
     let cells: [Placement]
     let markers: [String: [Double]]
+    let movingPlatforms: [MovingPlatform]
 }
 
 struct MapDocument: Codable {
@@ -39,6 +80,7 @@ struct MapDocument: Codable {
     let layers: [String: Palette]
     var cells: [Placement]
     var markers: [String: [Double]]
+    var movingPlatforms: [MovingPlatform]
     var source: SourcePlacements?
 
     static let order = ["TerrainTiles", "OneWayPlatforms", "GumPassBarriers",
@@ -52,6 +94,7 @@ struct MapDocument: Codable {
         if layers["TerrainTiles"]?.palette.contains(Self.breakableTile) == true {
             result.insert(Self.breakableKind, at: 1)
         }
+        result.append(MovingPlatform.kind)
         return result
     }
 
@@ -108,17 +151,26 @@ struct MapDocument: Codable {
     func validate() throws {
         let widths = ["res://scenes/stages/theater_stage.tscn": 160,
                       "res://scenes/stages/time_attack.tscn": 192]
-        guard version == 1, widths[stage] == width, height == 24, tileSize == 32,
+        guard version == 2, widths[stage] == width, height == 24, tileSize == 32,
               base.count == 64, base.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               layers["TerrainTiles"] != nil,
               Set(layers.keys).isSubset(of: Set(Self.order)),
               markers["PlacementMarkers/PlayerSpawn"] != nil, markers["PlacementMarkers/Exit"] != nil else {
-            throw MapError("ステージ情報、形式バージョン、または必須の配置種別が不正です。")
+            throw MapError("ステージ情報や配置形式が未対応です。Godotからステージをコピーし直してください。")
         }
         for (name, layer) in layers {
             guard !layer.tileset.isEmpty, layer.palette.allSatisfy({ tile in
                 tile.count == 4 && tile.allSatisfy { (0...Int(Int32.max)).contains($0) }
             }) else { throw MapError("タイルパレットが不正です: \(name)") }
+        }
+        var ids: Set<String> = []
+        var starts: Set<GridPoint> = []
+        for platform in movingPlatforms {
+            try platform.validate(width: width, height: height)
+            guard ids.insert(platform.id).inserted,
+                  starts.insert(GridPoint(x: platform.x, y: platform.y)).inserted else {
+                throw MapError("移動床のIDまたは始点が重複しています。")
+            }
         }
         var occupied: [String: Set<GridPoint>] = [:]
         for cell in cells {

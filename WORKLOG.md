@@ -1,3 +1,70 @@
+## 移動床のコリジョンに左右の余裕を追加
+
+- Goal/status: 見た目より少し広い移動床の判定へ変更。完了。
+- Completed/decisions: 左右各4px（合計8px）の張り出し、表示幅/高さ/中央/上面は維持。共有定数を使い可変幅・wake帯・support_rectを同期、Player床抜け確認も実判定幅を使う。ユーザーより移動床コヨーテ有効と実走確認あり、コヨーテ変更不要。
+- Files changed: moving_platform.gd/scene、player.gd、verify_moving_platform.gd、specs/moving-platforms.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: moving/player/one_way全suite PASS/終了0。実端196/300での左右端着地、張り出し内外point query、判定外落下、幅192→判定200px、運搬/離脱/下抜け/一方通行を確認。幅の基準定数とsupport_rect共用、scene既定幅・wake帯・仕様の整合性を最終レビュー。既存証明書/終了resource警告のみ、script/parse errorなし。git diff --check PASS。
+- Next action: F5で移動床の左右端の乗りやすさを確認。
+- Blockers: なし。
+
+## 移動床のコヨーテタイム方針確認
+
+- Goal/status: 移動床でコヨーテタイムを設けるべきか相談へ回答。完了、実装変更なし。
+- Findings/decision: player.gdは床種別によらずis_on_floorで共有coyote_time（schema0.2秒）を補充し、移動床を除外していない。下+Zの意図的な床抜けでは消費する。移動床verifyは歩き離脱の運動量を検証しているが、離脱後の遅延Zは専用未検証。通常床と同じ猶予を推奨し、効かない体感は意図的仕様ではなく再現検証対象と説明。
+- Files changed: WORKLOG.mdのみ。
+- Verification: player.gd/game_settings.gd/verify_moving_platform.gdの読取確認。実行検証なし、症状の原因は未断定。
+- Blockers: なし。Next action: 修正依頼時に上下左右の移動床で離脱後Zの猶予・踏切速度を実物理tickで再現検証する。
+
+## ポーズメニューのデバッグチェックポイント移動
+
+- Goal/status: 配置済みチェックポイントをスタートから近い順の番号で選んで移動。完了。
+- Completed/decisions: Gameポーズメニュー末尾「チェックポイント移動（デバッグ）」に番号付きスクロール一覧を追加。PlayerSpawnからの直線距離、同距離NodePath順。既存restart(true)でステージ再生成・選択地点へ復帰、経過時間/取得状態保持、速度/gum/一時演出/物理状態を初期化。debug_checkpoint_usedを死亡metaへ保持、DEBUG TIME表示・自己ベスト更新除外、手動retryで解除。復帰tickを1回抑制しCross持越しを防止。
+- Files changed: scripts/pause_menu.gd/game.gd、tools/verify_debug_checkpoints.gd/verify_pause_menu.gd/verify_checkpoints.gd、specs/pause-menu.md/checkpoints.md/time-attack-courses.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 最終debug suite（両stageの距離/同距離順・再取得・削除済み指定・empty・画面内収まり・上下/Cross選択・実再ロード・状態保持/初期化・死亡継続/手動解除/記録除外）PASS/終了0。pause/checkpoints/stage_select/replay/controlsもPASS/終了0。既存checkpoints fixtureはmanual開始をspawn markerではなく床へ合わせたentrance位置で検証し、入場演出完了後に奈落死を試すよう現行仕様へ修正。共通focus helper、明示main container/Checkpoint型へ整理後に関連suite再実行。既存証明書/終了resource警告のみ、script/parse errorなし。git diff --check PASS。
+- Blockers: なし。Next action: F5→OPTIONS/Esc→「チェックポイント移動（デバッグ）」→番号選択で任意区間を試す。通常計測へ戻すときは手動リトライ。
+
+## 移動床のゲーム・MapEdit統合
+
+- Goal/status: 9-slice移動床をゲームとMapEditへ統合。完了。
+- Completed/decisions: moving_platform.gd/scene、Game固定step・sync_to_physics=true、layer8上面のみ・ガム貫通、上下左右往復と幅/距離/速度/待機指定。TimeAttack終盤へ横/上2台（5472,480右4マス／5824,544上3マス、幅3・64px/s）を任意床として配置、下の通路は維持。Playerは運搬・離脱運動量・動く床の下抜け、dust相対速度/追従。floor snap/carryはfloor=true/contact空があるため直前床を保持し、支持中UP法線で重力整理、左右歩き離脱でも運動量を一度引継ぐ。sleep剛体は8px帯でwakeのみ、摩擦はエンジン（constant_linear_velocityを重ねない）。MapEdit交換version2・ID三者merge/Undo/保存、Swift個別配置/設定/矢印/終点/帯/警告/minimap。Replay version2へnine_patch記録再生。生成器にも空containerを追加（再生成は行わない）。
+- Files changed: moving_platform.gd/scene、game/player/landing_dust/replay_store/replay_player、両stage、addons/mapedit、tools/mapeditの3Swift、verify_moving_platform/verify_moving_platform_exchange/verify_mapedit/verify_replay、2stage生成器、仕様/README/AGENTS/WORKLOG。
+- Verification/refactoring: 最終moving suite（四方向32/160・反転・キック/左右歩き離脱・下面/側面通過・上昇/下降床抜け・sleep箱/gum/幅/Game lifecycle）、player/one_way/controls/compression（通常とsupport-only）/dust/replay/stage_select/theater_stage PASS/終了0。交換両stage追加変更削除/Undo/再読込/merge PASS/終了0。Swift全体buildとGodot v2JSON消費モデルtest PASS。既存の証明書/Mono socket/editor settings/終了resource警告あり、script/parse errorなし。UIでカテゴリ・設定欄・入力確定を目視確認、座標クリックはCUA noWindowsAvailableで配置/ドラッグ実操作は未確認。物理queryキャッシュと支持/抜けhelperへ整理、仕様統一、git diff --check PASS。生成器はプロジェクトautoload有効のload/can_instantiateでPASS（実行/再生成なし）。単独--check-onlyでは既存food_collectibleのSoundEffects autoload未解決が出るため通常projectロードで確認した。
+- Blockers: なし。指定.agents方針ファイルは存在せず既存構造へ合わせた。続行依頼後のアプリ一覧でQA用MapEditMovingは起動中・登録済みのいずれにも存在しないことを確認。終了操作は不要となり、他のアプリやユーザー作業セッションへ変更なし。
+- Next action: 実装・自動検証・後片付けは完了。F5で終盤の2台を試す。MapEditを再起動して更新済みstageをコピーし直し、移動床を編集。
+
+## 移動床9-slice画像の作成
+
+- Goal/status: 可変幅の移動床専用画像を生成・保存。完了、移動床本体は未実装。
+- Completed/decisions: 組み込みimagegenでクリーム／ミントの一枚絵生成、左右端にコーラル飾り。原画を切出しnearest64×10pxへ整形。9-slice余白L/R8・T/B2px、幅32px以上・高さ10px固定で中央横伸長。仕様の旧タイル連結方式を置換。
+- Files changed: images/tilesets/restaurant_moving_platform{,_source,_preview}.png、runtime同一PNG、specs/moving-platforms.md、specs/moving-platform-image-prompt.txt、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 原画と32/96/192pxプレビュー目視、端の飾り維持・継ぎ目を確認。64×10RGBA/alpha0–254/runtime byte一致PASS。画像の9-slice設定と衝突寸法を区別して仕様統一。Godot import終了0、既存の証明書・Mono socket・editor settings警告あり。git diff --check PASS。
+- Blockers: なし。Next action: 移動床実装時にNinePatchRectへ余白を設定し、床横幅と衝突矩形を同期する。
+
+## 移動床の設計
+
+- Goal/status: 上下・左右移動、一方通行、移動範囲とMapEdit矢印の設計。仕様書作成完了、実装未着手。
+- Completed/decisions: 移動ブロック数=32px単位の移動距離と解釈、床横幅は独立。A/B往復、相対下降による上面着地と接地後支持、下面応答なし、ガム貫通。AnimatableBody2D、共通layer8、個別シーン配置、交換version2/id比較を提案。APIはGodot公式4.5資料で確認、実挙動は実装時に検証する。
+- Files changed: specs/moving-platforms.md、specs/mapedit.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 既存one_way/player/Game/MapEdit仕様と照合。単位・往復周期・矢印寸法・ライフサイクル・競合条件をレビュー。仕様のみ、ランタイムテスト不要。
+- Blockers: なし。Next action: ユーザーの設計確認後、最小物理fixtureで上下反転・下降支持・下面通過・更新順序を検証して実装する。
+
+## MapEditでタイムアタックの透明ブロックを配置
+
+- Goal/status: ガム非接着の透明ブロック配置を確認し、不足を修正。完了。
+- Completed/decisions: MapEditの既存「バリア」ブラシとsource3交換処理は対応済み。time_attack.tscnだけ専用レイヤーが欠落していたため、共有TileSet参照の空GumPassBarriersを追加。既存マップ編集を保持。新規ブロック配置は行わない。
+- Files changed: time_attack.tscn、verify_mapedit.gd、specs/gum-pass-barrier-tile.md、tools/mapedit/README.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 両ステージの実Editor交換・配置・PackedScene再生成・Undo/Redoのverify_mapedit PASS/終了0。verify_gum_pass_barrier PASS/終了0。既存の証明書／Mono socket／editor settings／終了resource警告あり。既存ブラシ・保存経路を再利用し重複実装なし、差分とレイヤー既定collision有効をレビュー、git diff --check PASS。
+- Blockers: なし。指定の.agents/ツール作成.mdとタイルマップエディタ作成.mdは存在せず。ツール本体の拡張不要で既存対応を利用。
+- Next action: Godotで更新済みtime_attack.tscnを開き直してコピーし、MapEditへ貼り付け、「バリア」を選んで配置・送信・保存。
+
+## タイムアタック終盤の山場アイデア
+
+- Goal/status: 最後に置くギミックの案出し。提案完了、採用未定。
+- Completed/decisions: 現行time_attack.tscnとtime-attack-courses仕様を確認。一本接続／射程160px／物理と運動量／安定・短縮ルートの共存を前提に、三連振り子のフィニッシュを第一候補、可動看板・配膳リフトを追加実装案として提案。
+- Files changed: WORKLOG.mdのみ。既存time_attack.tscn変更と未追跡pixelfx/は保持。
+- Verification: 仕様と保存シーンの出口位置(5952,574)を読取確認。実装変更なし、実行テストなし。
+- Blockers: なし。Next action: 採用案が決まったら終盤の配置案と実走検証条件を具体化する。
+
 ## 音符を淡い水色へ調整
 
 - Goal/status: 鮮やかな青から淡い水色へ変更。完了。

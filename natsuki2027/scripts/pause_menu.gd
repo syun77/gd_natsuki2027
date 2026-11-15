@@ -3,8 +3,16 @@ extends CanvasLayer
 signal retry_requested
 signal selection_requested
 signal resumed
+signal checkpoint_selected(path: NodePath)
 var is_open := false
 var buttons: Array[Button] = []
+var checkpoint_buttons: Array[Button] = []
+var checkpoint_provider := Callable()
+var main_column: VBoxContainer
+var checkpoint_column: VBoxContainer
+var checkpoint_list: VBoxContainer
+var checkpoint_back: Button
+var checkpoint_action: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -38,16 +46,20 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_color", Color("344e50"))
 	column.add_child(title)
+	main_column = VBoxContainer.new()
+	main_column.add_theme_constant_override("separation", 18)
+	column.add_child(main_column)
 	for text in ["リトライ", "ステージ選択に戻る", "キャンセル"]:
 		var button := Button.new()
 		button.text = text
 		button.custom_minimum_size.y = 64
-		column.add_child(button)
+		main_column.add_child(button)
 		buttons.append(button)
 	buttons[0].pressed.connect(func(): retry_requested.emit())
 	buttons[1].pressed.connect(func(): selection_requested.emit())
 	buttons[2].pressed.connect(close)
-	_update_focus_neighbors()
+	_set_focus_neighbors(buttons)
+	_setup_checkpoint_panel(column)
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause_menu") or event.is_action_pressed("ui_cancel"):
@@ -61,6 +73,7 @@ func open() -> void:
 	if is_open:
 		return
 	is_open = true
+	_show_main()
 	show()
 	get_tree().paused = true
 	buttons[0].grab_focus()
@@ -73,6 +86,9 @@ func close() -> void:
 	get_tree().paused = false
 	for button in buttons:
 		button.release_focus()
+	for button in checkpoint_buttons:
+		button.release_focus()
+	checkpoint_back.release_focus()
 	resumed.emit()
 
 func _exit_tree() -> void:
@@ -83,15 +99,82 @@ func add_replay_action(action: Callable) -> void:
 	var button := Button.new()
 	button.text = "リプレイ再生"
 	button.custom_minimum_size.y = 64
-	buttons[0].get_parent().add_child(button)
+	main_column.add_child(button)
 	button.pressed.connect(action)
 	buttons.append(button)
 	# Availability changes when a run reaches the goal.
 	visibility_changed.connect(func(): button.disabled = not ReplayStore.available())
 	button.disabled = not ReplayStore.available()
-	_update_focus_neighbors()
+	_set_focus_neighbors(buttons)
 
-func _update_focus_neighbors() -> void:
-	for index in buttons.size():
-		buttons[index].focus_neighbor_top = buttons[index].get_path_to(buttons[posmod(index - 1, buttons.size())])
-		buttons[index].focus_neighbor_bottom = buttons[index].get_path_to(buttons[(index + 1) % buttons.size()])
+func _set_focus_neighbors(items: Array[Button]) -> void:
+	for index in items.size():
+		items[index].focus_neighbor_top = items[index].get_path_to(items[posmod(index - 1, items.size())])
+		items[index].focus_neighbor_bottom = items[index].get_path_to(items[(index + 1) % items.size()])
+
+func add_checkpoint_action(provider: Callable) -> void:
+	checkpoint_provider = provider
+	checkpoint_action = Button.new()
+	checkpoint_action.text = "チェックポイント移動（デバッグ）"
+	checkpoint_action.custom_minimum_size.y = 64
+	main_column.add_child(checkpoint_action)
+	buttons.append(checkpoint_action)
+	checkpoint_action.pressed.connect(_show_checkpoints)
+	_set_focus_neighbors(buttons)
+
+func _setup_checkpoint_panel(column: VBoxContainer) -> void:
+	checkpoint_column = VBoxContainer.new()
+	checkpoint_column.add_theme_constant_override("separation", 18)
+	column.add_child(checkpoint_column)
+	var heading := Label.new()
+	heading.text = "チェックポイント移動（デバッグ）\nスタートから近い順"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_color_override("font_color", Color("344e50"))
+	checkpoint_column.add_child(heading)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 250
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	checkpoint_column.add_child(scroll)
+	checkpoint_list = VBoxContainer.new()
+	checkpoint_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	checkpoint_list.add_theme_constant_override("separation", 8)
+	scroll.add_child(checkpoint_list)
+	checkpoint_back = Button.new()
+	checkpoint_back.text = "戻る"
+	checkpoint_back.custom_minimum_size.y = 64
+	checkpoint_column.add_child(checkpoint_back)
+	checkpoint_back.pressed.connect(func():
+		_show_main()
+		checkpoint_action.grab_focus()
+	)
+	checkpoint_column.hide()
+
+func _show_main() -> void:
+	main_column.show()
+	checkpoint_column.hide()
+
+func _show_checkpoints() -> void:
+	checkpoint_buttons.clear()
+	for child in checkpoint_list.get_children():
+		checkpoint_list.remove_child(child)
+		child.queue_free()
+	var entries: Array = checkpoint_provider.call()
+	for entry: Dictionary in entries:
+		var button := Button.new()
+		button.text = "チェックポイント %d" % entry.number
+		button.custom_minimum_size.y = 56
+		button.pressed.connect(func(): checkpoint_selected.emit(entry.path))
+		checkpoint_list.add_child(button)
+		checkpoint_buttons.append(button)
+	if entries.is_empty():
+		var empty := Label.new()
+		empty.text = "チェックポイントがありません"
+		empty.add_theme_color_override("font_color", Color("344e50"))
+		checkpoint_list.add_child(empty)
+	main_column.hide()
+	checkpoint_column.show()
+	var navigation: Array[Button] = checkpoint_buttons.duplicate()
+	navigation.append(checkpoint_back)
+	_set_focus_neighbors(navigation)
+	navigation[0].grab_focus()

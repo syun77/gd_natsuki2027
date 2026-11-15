@@ -45,7 +45,7 @@ func copy_stage() -> void:
 		show_message("ステージの配置データを取得できませんでした。")
 		return
 	data["base"] = Exchange.token(data)
-	data["source"] = {"cells": data.cells, "markers": data.markers}
+	data["source"] = {"cells": data.cells, "markers": data.markers, "movingPlatforms": data.movingPlatforms}
 	DisplayServer.clipboard_set(JSON.stringify(data, "", true, true))
 	show_message("Gameplay placements copied.")
 
@@ -82,7 +82,8 @@ func preview_paste(json: String, completion: Callable) -> Dictionary:
 		return {"status": "error", "message": error}
 	var changes := Exchange.diff(before, data)
 	if changes.old.is_empty() and changes.next.is_empty() and changes.markers.is_empty() \
-			and changes.checkpoints_added.is_empty() and changes.checkpoints_removed.is_empty():
+			and changes.checkpoints_added.is_empty() and changes.checkpoints_removed.is_empty() \
+			and changes.platforms_old.is_empty() and changes.platforms_next.is_empty():
 		DirectPaste.log_event("validation passed: no changes", trace)
 		return {"status": "unchanged", "message": "No placement changes."}
 	var expected_base: String = data.base
@@ -101,6 +102,7 @@ func preview_paste(json: String, completion: Callable) -> Dictionary:
 	confirm.dialog_text = "%d tile writes, %d tile removals/replacements, %d marker moves.\n%d checkpoints added, %d removed." % [
 		changes.next.size(), changes.old.size(), changes.markers.size(),
 		changes.checkpoints_added.size(), changes.checkpoints_removed.size()]
+	confirm.dialog_text += "\n移動床: %d 件追加/変更、%d 件削除/置換" % [changes.platforms_next.size(), changes.platforms_old.size()]
 	if merged_changes:
 		confirm.dialog_text = "Godot 側の変更を保持し、MapEdit の差分を反映します。\n" + confirm.dialog_text
 	if additions_only:

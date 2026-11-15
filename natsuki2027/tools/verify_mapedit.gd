@@ -16,6 +16,8 @@ func verify() -> void:
 		assert(stage != null and stage.scene_file_path == path)
 		var before := Exchange.snapshot(stage)
 		assert(before.layers.OneWayPlatforms.palette == Exchange.ATLAS_PALETTES.OneWayPlatforms)
+		assert(before.layers.GumPassBarriers.palette == Exchange.ATLAS_PALETTES.GumPassBarriers)
+		assert((stage.get_node("GumPassBarriers") as TileMapLayer).collision_enabled)
 		assert((stage.get_node("OneWayPlatforms") as TileMapLayer).collision_enabled)
 		assert(before.layers.Foods.palette.size() == 11)
 		assert(before.layers.Foods.labels.has("ミラノ風ドリア"))
@@ -51,6 +53,7 @@ func verify() -> void:
 		data.cells.append({"kind": "Foods", "x": 5, "y": 5, "tile": [0, 0, 0, 5]})
 		for kind in ["Baguettes", "MusicNotes", "GumBoxes", "Spikes"]:
 			data.cells.append({"kind": kind, "x": 5, "y": 5, "tile": [0, 0, 0, 0]})
+		data.cells.append({"kind": "GumPassBarriers", "x": 5, "y": 5, "tile": [3, 0, 0, 0]})
 		data.markers["PlacementMarkers/PlayerSpawn"][0] += 32
 		var checkpoints := stage.get_node("Checkpoints")
 		var old_checkpoints := checkpoints.get_children()
@@ -75,7 +78,7 @@ func verify() -> void:
 		assert(recovered_changes.old.is_empty() and recovered_changes.next.is_empty())
 		assert(recovered_changes.markers.is_empty() and recovered_changes.checkpoints_removed.is_empty())
 		assert(recovered_changes.checkpoints_added.size() == 2)
-		stale.source = {"cells": before.cells, "markers": before.markers}
+		stale.source = {"cells": before.cells, "markers": before.markers, "movingPlatforms": before.movingPlatforms}
 		var newer := before.duplicate(true)
 		newer.markers["PlacementMarkers/Exit"][1] -= 32.0
 		var combined := Exchange.merge_stale(stage, newer, stale)
@@ -86,7 +89,7 @@ func verify() -> void:
 		assert(Exchange.merge_stale(stage, newer, stale).has("error"))
 		var after_send: Dictionary = combined.data
 		var reverted := stale.duplicate(true)
-		reverted.source = {"cells": stale.cells, "markers": stale.markers}
+		reverted.source = {"cells": stale.cells, "markers": stale.markers, "movingPlatforms": stale.movingPlatforms}
 		reverted.cells = before.cells
 		reverted.markers = before.markers.duplicate(true)
 		# Keep the checkpoint set from the applied send. This test reverts tiles and the spawn.
@@ -114,6 +117,7 @@ func verify() -> void:
 		assert(foods.get_cell_alternative_tile(food_cell) == 5)
 		for kind in ["Baguettes", "MusicNotes", "GumBoxes", "Spikes"]:
 			assert(stage.get_node(kind).get_cell_source_id(food_cell) == 0)
+		assert(stage.get_node("GumPassBarriers").get_cell_source_id(food_cell) == 3)
 		assert(Exchange.snapshot(stage).markers == data.markers)
 		assert(checkpoints.get_child_count() == old_checkpoints.size() + 1)
 		for name in new_names:
@@ -124,6 +128,7 @@ func verify() -> void:
 		assert(packed.pack(stage) == OK)
 		var copy := packed.instantiate()
 		assert(copy.has_node("Checkpoints/" + new_names[1]))
+		assert(copy.get_node("GumPassBarriers").get_cell_source_id(food_cell) == 3)
 		var boxes := copy.get_node("GumBoxes") as TileMapLayer
 		assert(boxes.get_cell_source_id(food_cell) == 0)
 		var box_source := boxes.tile_set.get_source(0) as TileSetScenesCollectionSource
@@ -154,6 +159,7 @@ func verify() -> void:
 		assert(stage.get_children() == old_children)
 		assert(checkpoints.get_children() == old_checkpoints)
 		assert(scene_history.redo())
+		assert(stage.get_node("GumPassBarriers").get_cell_source_id(food_cell) == 3)
 		assert(Exchange.snapshot(stage).markers == data.markers)
 		assert(Exchange.snapshot(stage).cells.size() == data.cells.size())
 		assert(foods.get_cell_alternative_tile(food_cell) == 5)

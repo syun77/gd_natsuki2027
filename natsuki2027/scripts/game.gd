@@ -1,5 +1,7 @@
 extends Node2D
-## Fixed-step owner: validate -> direction / actions -> gum -> player -> presentation.
+## Fixed-step owner: platforms -> validate / input -> gum -> player -> presentation.
+const Checkpoint = preload("res://scripts/checkpoint.gd")
+const MovingPlatform = preload("res://scripts/moving_platform.gd")
 const ContactPickup = preload("res://scripts/contact_pickup.gd")
 const FoodCollectible = preload("res://scripts/food_collectible.gd")
 const Settings = preload("res://scripts/game_settings.gd")
@@ -14,6 +16,7 @@ var active_checkpoint: NodePath
 @export var time_attack := false
 var elapsed := 0.0
 var best_time := 0.0
+var debug_checkpoint_used := false
 var timer_label: Label
 var collected_items: Dictionary = {}
 var score := 0
@@ -87,9 +90,12 @@ func _setup_timer() -> void:
 	var record := ConfigFile.new()
 	if record.load(TIME_ATTACK_RECORD) == OK:
 		best_time = record.get_value("record", "seconds", 0.0)
-	timer_label.text = "TIME %.2f" % elapsed
+	timer_label.text = "%sTIME %.2f" % ["DEBUG " if debug_checkpoint_used else "", elapsed]
 
 func _finish_time_attack() -> void:
+	if debug_checkpoint_used:
+		timer_label.text = "DEBUG TIME %.2f" % elapsed
+		return
 	if best_time <= 0.0 or elapsed < best_time:
 		best_time = elapsed
 		var record := ConfigFile.new()
@@ -142,7 +148,36 @@ func _setup_pause_menu() -> void:
 	pause_menu.retry_requested.connect(restart)
 	pause_menu.selection_requested.connect(return_to_stage_select)
 	pause_menu.add_replay_action(func(): ReplayStore.play("res://scenes/mode_select.tscn"))
+	pause_menu.add_checkpoint_action(_debug_checkpoint_entries)
+	pause_menu.checkpoint_selected.connect(_debug_move_to_checkpoint)
 	pause_menu.resumed.connect(func(): suppress_gameplay_tick = true)
+
+func _debug_checkpoint_entries() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	var checkpoints := get_node_or_null("TheaterStage/Checkpoints")
+	if checkpoints == null:
+		return entries
+	var spawn: Vector2 = $TheaterStage/PlacementMarkers/PlayerSpawn.global_position
+	for checkpoint in checkpoints.get_children():
+		if checkpoint is Checkpoint:
+			entries.append({"path": get_path_to(checkpoint),
+				"distance": spawn.distance_squared_to(checkpoint.global_position)})
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a.distance == b.distance:
+			return str(a.path) < str(b.path)
+		return a.distance < b.distance
+	)
+	for index in entries.size():
+		entries[index].number = index + 1
+	return entries
+
+func _debug_move_to_checkpoint(path: NodePath) -> void:
+	var checkpoint := get_node_or_null(path) as Checkpoint
+	if restarting or checkpoint == null or checkpoint.get_parent() != get_node_or_null("TheaterStage/Checkpoints"):
+		return
+	debug_checkpoint_used = true
+	active_checkpoint = path
+	restart(true)
 
 func _setup_entrance() -> void:
 	entrance = preload("res://scripts/stage_entrance.gd").new()
@@ -230,7 +265,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if time_attack:
 		elapsed += delta
-		timer_label.text = "TIME: %.2f" % elapsed
+		timer_label.text = "%sTIME: %.2f" % ["DEBUG " if debug_checkpoint_used else "", elapsed]
 	if is_instance_valid(death_effect):
 		if death_effect.step(delta):
 			restart(true)
@@ -243,6 +278,11 @@ func _physics_process(delta: float) -> void:
 	if _touches_spikes(previous_shape_transform, Vector2.ZERO):
 		_die_on_spikes(previous_shape_transform.origin)
 		return
+	var platforms := get_node_or_null("TheaterStage/MovingPlatforms")
+	if platforms:
+		for platform in platforms.get_children():
+			if platform is MovingPlatform:
+				platform.step(delta)
 	gum.validate_connection()
 	var was_reeling: bool = gum.reeling_food()
 	var jump_requested := Input.is_action_just_pressed("jump") and not was_reeling
@@ -271,6 +311,9 @@ func _setup_checkpoints() -> void:
 	get_tree().remove_meta(RESPAWN_META)
 	if saved.get("scene") != scene_file_path:
 		return
+	debug_checkpoint_used = saved.get("debug_checkpoint_used", false)
+	if debug_checkpoint_used:
+		suppress_gameplay_tick = true
 	if time_attack:
 		elapsed = saved.get("elapsed", 0.0)
 	var checkpoint = get_node_or_null(saved.get("checkpoint", NodePath()))
@@ -311,6 +354,7 @@ func restart(from_checkpoint := false) -> void:
 	if from_checkpoint and (time_attack or not active_checkpoint.is_empty()):
 		get_tree().set_meta(RESPAWN_META, {
 			"scene": scene_file_path, "checkpoint": active_checkpoint, "elapsed": elapsed,
+			"debug_checkpoint_used": debug_checkpoint_used,
 			"collected_items": collected_items.duplicate(), "score": score,
 		})
 	elif get_tree().has_meta(RESPAWN_META):
@@ -408,6 +452,8 @@ func _clear_stage() -> void:
 	panel.add_child(column)
 	var title := Label.new()
 	title.text = "TIME %.2f  /  BEST %.2f" % [elapsed, best_time] if time_attack else "STAGE CLEAR!"
+	if time_attack and debug_checkpoint_used:
+		title.text = "DEBUG TIME %.2f" % elapsed
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 40)
 	column.add_child(title)

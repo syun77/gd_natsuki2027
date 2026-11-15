@@ -91,6 +91,14 @@ func _apply_frame(frame: Dictionary) -> void:
 				node.centered = data.centered
 				node.flip_h = data.flip_h
 				node.flip_v = data.flip_v
+			"nine_patch":
+				var patch: NinePatchRect = node.get_child(0)
+				patch.size = data.size
+				patch.texture = load(data.texture)
+				patch.patch_margin_left = data.margins.x
+				patch.patch_margin_top = data.margins.y
+				patch.patch_margin_right = data.margins.z
+				patch.patch_margin_bottom = data.margins.w
 			"tiles":
 				node.tile_map_data = data.cells
 			"line":
@@ -114,6 +122,11 @@ func _create_visual(data: Dictionary) -> Node2D:
 	var node: Node2D
 	match data.kind:
 		"particles": node = preload("res://scripts/replay_particles.gd").new()
+		"nine_patch":
+			node = Node2D.new()
+			var patch := NinePatchRect.new()
+			patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			node.add_child(patch)
 		"label":
 			node = Node2D.new()
 			var label := Label.new()

@@ -26,6 +26,9 @@ func build() -> void:
 	stage = Node2D.new()
 	stage.name = "TheaterStage"
 	stage.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var platforms := Node2D.new()
+	platforms.name = "MovingPlatforms"
+	add(stage, platforms)
 	var background := Polygon2D.new()
 	background.polygon = PackedVector2Array([Vector2.ZERO, Vector2(2048, 0), Vector2(2048, 768), Vector2(0, 768)])
 	background.color = Color("526d70")

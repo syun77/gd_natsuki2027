@@ -29,6 +29,9 @@ func _initialize() -> void:
 	stage = Node2D.new()
 	stage.name = "TheaterStage"
 	stage.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var platforms := Node2D.new()
+	platforms.name = "MovingPlatforms"
+	add(stage, platforms)
 	var background := layer("Background", Color(0.65, 0.78, 0.72, 0.45))
 	for x in range(2, Layout.SIZE.x - 2):
 		for y in range(4, Layout.SIZE.y):

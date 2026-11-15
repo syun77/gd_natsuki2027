@@ -29,8 +29,11 @@ func verify() -> void:
 	check(game.pause_menu.buttons[3].disabled, "Replay action disabled without completed data")
 	var first_frame: Dictionary = store.frames[0]
 	var has_tiles := false
+	var has_platform := false
 	for data in first_frame.changed.values():
 		has_tiles = has_tiles or data.kind == "tiles"
+		has_platform = has_platform or (data.kind == "nine_patch" and data.size == Vector2(96, 10) and data.margins == Vector4i(8, 2, 8, 2))
+	check(has_platform, "Moving platform nine-slice artwork recorded")
 	check(has_tiles, "Initial frame contains saved map artwork")
 	var count: int = store.frames.size()
 	game.pause_menu.open()
@@ -145,6 +148,9 @@ func verify() -> void:
 		check(replay.visuals.has(id), "Recorded final visual exists")
 		if replay.visuals.has(id):
 			check(replay.visuals[id].transform == expected[id].transform, "Final transform reproduces recorded state without drift")
+			if expected[id].kind == "nine_patch":
+				var patch: NinePatchRect = replay.visuals[id].get_child(0)
+				check(patch.size == expected[id].size and patch.patch_margin_left == 8 and patch.patch_margin_right == 8, "Replay restores nine-slice width and fixed caps")
 	check(store.latest == recorded, "Playback never changes saved run")
 	replay.pause_menu.buttons[0].pressed.emit()
 	await wait_frames()

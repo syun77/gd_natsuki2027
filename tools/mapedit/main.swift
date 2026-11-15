@@ -19,7 +19,7 @@ private struct PasteResponse: Decodable {
 }
 
 final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFieldDelegate {
-    private let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 620),
+    private let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 760),
                                   styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                   backing: .buffered, defer: false)
     private let canvas = Canvas()
@@ -38,6 +38,14 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
     private var categoryButtons: [NSButton] = []
     private let variantLabel = NSTextField(labelWithString: "タイル")
     private let variant = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let platformControls = NSStackView()
+    private let platformHeading = NSTextField(labelWithString: "次に置く移動床")
+    private let platformDirection = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let platformTravel = NSTextField(string: "4")
+    private let platformWidth = NSTextField(string: "3")
+    private let platformSpeed = NSTextField(string: "64")
+    private let platformWait = NSTextField(string: "0")
+    private let platformFeedback = NSTextField(wrappingLabelWithString: "")
     private let status = NSTextField(labelWithString: "")
     private let history = UndoManager()
     private var baseline: Data?
@@ -76,7 +84,8 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         paletteScroll.autohidesScrollers = true
         paletteScroll.drawsBackground = true
         paletteScroll.backgroundColor = .controlBackgroundColor
-        let tools = NSStackView(views: [categoryLabel, paletteScroll, styleButton, variantLabel, variant, sendButton, fitButton, status])
+        setupPlatformControls()
+        let tools = NSStackView(views: [categoryLabel, paletteScroll, styleButton, variantLabel, variant, platformControls, sendButton, fitButton, status])
         tools.orientation = .vertical
         tools.alignment = .leading
         tools.spacing = 8
@@ -132,6 +141,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
             self.categoryButtons[index].scrollToVisible(self.categoryButtons[index].bounds)
             return true
         }
+        canvas.onPlatformSelection = { [weak self] in self?.refreshPlatformControls() }
         canvas.onHover = { [weak self] label in self?.status.stringValue = label }
         canvas.onCommit = { [weak self] previous in
             self?.remember(previous)
@@ -220,7 +230,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
     }
 
     private func placementName(for kind: String) -> String {
-        let labels = [MapDocument.breakableKind: "破壊可能ブロック", "TerrainTiles": "地形", "OneWayPlatforms": "一方通行床", "GumPassBarriers": "バリア",
+        let labels = [MapDocument.breakableKind: "破壊可能ブロック", "TerrainTiles": "地形", "OneWayPlatforms": "一方通行床", "GumPassBarriers": "バリア", MovingPlatform.kind: "移動床",
                       "GumAnchors": "ガムアンカー", "Spikes": "即死トゲ", "GumBoxes": "可動ブロック", "Foods": "食べ物", "Baguettes": "スター", "MusicNotes": "音符", MapDocument.checkpointKind: "チェックポイント"]
         let name = String(kind.split(separator: "/").last ?? "")
         return canvas.placementStyle(for: kind)?.name ?? labels[kind]
@@ -358,6 +368,96 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         }
     }
 
+    private func setupPlatformControls() {
+        platformDirection.addItems(withTitles: ["上", "下", "左", "右"])
+        platformControls.orientation = .vertical
+        platformControls.alignment = .leading
+        platformControls.spacing = 5
+        let grid = NSGridView(views: [
+            [NSTextField(labelWithString: "移動方向"), platformDirection],
+            [NSTextField(labelWithString: "移動マス数"), platformTravel],
+            [NSTextField(labelWithString: "床の横幅（マス）"), platformWidth],
+            [NSTextField(labelWithString: "速度（px/s）"), platformSpeed],
+            [NSTextField(labelWithString: "端の待機（秒）"), platformWait]
+        ])
+        for field in [platformTravel, platformWidth, platformSpeed, platformWait] {
+            field.widthAnchor.constraint(equalToConstant: 90).isActive = true
+            field.target = self
+            field.action = #selector(applyPlatformSettings)
+        }
+        let apply = NSButton(title: "設定を確定", target: self, action: #selector(applyPlatformSettings))
+        let deselect = NSButton(title: "新規配置へ", target: self, action: #selector(deselectPlatform))
+        let buttons = NSStackView(views: [apply, deselect])
+        for view in [platformHeading, grid, buttons, platformFeedback] { platformControls.addArrangedSubview(view) }
+        platformFeedback.widthAnchor.constraint(lessThanOrEqualToConstant: 280).isActive = true
+        platformFeedback.textColor = .secondaryLabelColor
+        platformControls.isHidden = true
+    }
+
+    private func refreshPlatformControls() {
+        let selected = canvas.selectedPlatform
+        let platform = selected ?? canvas.platformTemplate
+        platformHeading.stringValue = selected == nil ? "次に置く移動床" : "選択中の移動床"
+        platformDirection.selectItem(at: MovingPlatform.directions.firstIndex(of: platform.direction) ?? 3)
+        platformTravel.stringValue = String(platform.travel_cells)
+        platformWidth.stringValue = String(platform.width_cells)
+        platformSpeed.stringValue = String(platform.speed)
+        platformWait.stringValue = String(platform.endpoint_wait)
+        platformFeedback.stringValue = selected == nil ? "左クリックで一台配置。既存床を選択して編集・ドラッグ移動。" : platformWarning(platform)
+    }
+
+    private func platformWarning(_ platform: MovingPlatform) -> String {
+        guard let map = canvas.document else { return "" }
+        let left = min(platform.x, platform.x + platform.offset.x)
+        let top = min(platform.y, platform.y + platform.offset.y)
+        let right = max(platform.x, platform.x + platform.offset.x) + platform.width_cells
+        let bottom = max(platform.y, platform.y + platform.offset.y) + 1
+        if map.cells.contains(where: {
+            ["TerrainTiles", "GumPassBarriers"].contains($0.kind) && (left..<right).contains($0.x)
+                && (max(0, top - 2)..<bottom).contains($0.y)
+        }) { return "警告：移動範囲か頭上空間に地形・バリアがあります。" }
+        for other in map.movingPlatforms where other.id != platform.id {
+            let a = CGRect(x: left, y: top, width: right - left, height: bottom - top)
+            let b = CGRect(x: min(other.x, other.x + other.offset.x), y: min(other.y, other.y + other.offset.y),
+                           width: other.width_cells + abs(other.offset.x), height: 1 + abs(other.offset.y))
+            if a.intersects(b) { return "警告：他の移動床と移動範囲が重なります。" }
+        }
+        return "範囲矢印は往復区間。右クリックで一台削除。"
+    }
+
+    @objc private func deselectPlatform() {
+        if let selected = canvas.selectedPlatform { canvas.platformTemplate = selected }
+        canvas.selectedPlatformID = nil
+        canvas.needsDisplay = true
+        refreshPlatformControls()
+        window.makeFirstResponder(canvas)
+    }
+
+    @objc private func applyPlatformSettings() {
+        guard let travel = Int(platformTravel.stringValue), let width = Int(platformWidth.stringValue),
+              let speed = Double(platformSpeed.stringValue), let wait = Double(platformWait.stringValue),
+              MovingPlatform.directions.indices.contains(platformDirection.indexOfSelectedItem) else {
+            platformFeedback.stringValue = "マス数は整数、速度・待機時間は数値で指定してください。"
+            return
+        }
+        var value = canvas.selectedPlatform ?? canvas.platformTemplate
+        value.direction = MovingPlatform.directions[platformDirection.indexOfSelectedItem]
+        value.travel_cells = travel
+        value.width_cells = width
+        value.speed = speed
+        value.endpoint_wait = wait
+        do {
+            if canvas.selectedPlatform == nil {
+                guard (1...192).contains(travel), (1...192).contains(width), speed.isFinite,
+                      (32...160).contains(speed), wait.isFinite, (0...5).contains(wait) else {
+                    throw MapError("移動・横幅は1以上、速度32〜160、待機0〜5秒で指定してください。")
+                }
+            }
+            try canvas.updatePlatform(value)
+            window.makeFirstResponder(canvas)
+        } catch { platformFeedback.stringValue = error.localizedDescription }
+    }
+
     @objc private func chooseCategory(_ sender: NSButton) {
         selectCategory(at: sender.tag)
     }
@@ -370,7 +470,12 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         variant.removeAllItems()
         variants = map.placementTiles(for: selected)
         let layerKind = MapDocument.layerKind(for: selected)
-        canvas.selectedKind = map.layers[layerKind] != nil || selected == MapDocument.checkpointKind ? layerKind : nil
+        canvas.selectedKind = map.layers[layerKind] != nil || selected == MapDocument.checkpointKind || selected == MovingPlatform.kind ? layerKind : nil
+        canvas.selectedPlatformID = nil
+        platformControls.isHidden = selected != MovingPlatform.kind
+        variant.isHidden = selected == MovingPlatform.kind
+        variantLabel.isHidden = selected == MovingPlatform.kind
+        refreshPlatformControls()
         canvas.marker = map.markers[selected] == nil ? nil : selected
         let source = map.layers[layerKind]
         let labels = source?.labels ?? []
@@ -408,6 +513,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
             var restored = previous
             restored.source = current.source
             editor.canvas.document = restored
+            editor.refreshPlatformControls()
             editor.refreshTitle()
         }
         history.endUndoGrouping()
@@ -418,6 +524,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         var normalized = map
         normalized.cells.sort(by: Placement.ordered)
+        normalized.movingPlatforms.sort { $0.id < $1.id }
         return try encoder.encode(normalized)
     }
 
@@ -433,6 +540,9 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
     }
 
     private func replace(with data: Data, file: URL?) throws {
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any], json["version"] as? Int == 2 else {
+            throw MapError("配置形式が古いか未対応です。Godotからステージをコピーし直してください。")
+        }
         var map = try JSONDecoder().decode(MapDocument.self, from: data)
         map.cells.sort(by: Placement.ordered)
         try map.validate()
@@ -555,7 +665,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
 
     private func recordAppliedSource() {
         guard sentMapID == loadedMapID, let sentMap, var current = canvas.document else { return }
-        let source = SourcePlacements(cells: sentMap.cells, markers: sentMap.markers)
+        let source = SourcePlacements(cells: sentMap.cells, markers: sentMap.markers, movingPlatforms: sentMap.movingPlatforms)
         current.source = source
         if let baseline, var saved = try? JSONDecoder().decode(MapDocument.self, from: baseline) {
             saved.source = source
@@ -650,14 +760,14 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
             if map.source == nil, session.file == nil, let saved = baseline,
                var original = try? JSONDecoder().decode(MapDocument.self, from: saved),
                original.stage == map.stage, original.base == map.base {
-                let source = SourcePlacements(cells: original.cells, markers: original.markers)
+                let source = SourcePlacements(cells: original.cells, markers: original.markers, movingPlatforms: original.movingPlatforms)
                 map.source = source
                 original.source = source
                 baseline = try encode(original)
             }
             load(map, file: file, baseline: baseline, camera: session.camera)
         } catch {
-            show(MapError("前回の作業を復元できませんでした。\n\(error.localizedDescription)"))
+            show(MapError("前回の作業を復元できませんでした。Godotからステージをコピーし直してください。\n\(error.localizedDescription)"))
         }
     }
 

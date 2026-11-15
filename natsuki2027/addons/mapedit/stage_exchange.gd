@@ -30,6 +30,8 @@ const ITEM_NAMES := {
 	"spicy_chicken": "辛味チキン",
 	"tarako_pasta": "たらこソースシシリー風",
 }
+const PLATFORM_SCENE := preload("res://scenes/props/moving_platform.tscn")
+const MovingPlatform = preload("res://scripts/moving_platform.gd")
 const CHECKPOINT_SCENE := preload("res://scenes/props/checkpoint.tscn")
 const CHECKPOINT_PREFIX := "Checkpoints/"
 const NEW_CHECKPOINT_PREFIX := CHECKPOINT_PREFIX + "CheckpointMapEdit_"
@@ -40,7 +42,7 @@ const HEIGHT := 24
 static func snapshot_error(stage: Node) -> String:
 	if stage == null or not WIDTHS.has(stage.scene_file_path):
 		return "time_attack.tscn または theater_stage.tscn を Godot で直接開いてください。"
-	for path in ["Terrain", "Checkpoints", "TerrainTiles", "PlacementMarkers/PlayerSpawn", "PlacementMarkers/Exit"]:
+	for path in ["Terrain", "Checkpoints", "MovingPlatforms", "TerrainTiles", "PlacementMarkers/PlayerSpawn", "PlacementMarkers/Exit"]:
 		if not stage.has_node(NodePath(path)):
 			return "%s に必須ノード %s がありません。ノード名を確認してください。" % [stage.scene_file_path.get_file(), path]
 	for kind in LAYERS:
@@ -101,8 +103,14 @@ static func snapshot(stage: Node) -> Dictionary:
 			for node in group.get_children():
 				if node is Node2D:
 					markers[str(stage.get_path_to(node))] = [node.position.x, node.position.y]
-	return {"version": 1, "stage": stage.scene_file_path, "width": WIDTHS[stage.scene_file_path],
-		"height": HEIGHT, "tileSize": TILE, "layers": layers, "cells": cells, "markers": markers}
+	var platforms: Array = []
+	for platform in stage.get_node("MovingPlatforms").get_children():
+		if platform is MovingPlatform:
+			platforms.append(platform.placement())
+	platforms.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	return {"version": 2, "stage": stage.scene_file_path, "width": WIDTHS[stage.scene_file_path],
+		"height": HEIGHT, "tileSize": TILE, "layers": layers, "cells": cells, "markers": markers,
+		"movingPlatforms": platforms}
 
 static func token(data: Dictionary) -> String:
 	return JSON.stringify(data, "", true, true).sha256_text()
@@ -124,6 +132,8 @@ static func validate(stage: Node, before: Dictionary, data: Variant) -> String:
 		return "送信データが MapEdit の JSON オブジェクトではありません。"
 	if before.is_empty():
 		return snapshot_error(stage)
+	if data.get("version") != 2:
+		return "配置形式が古いか未対応です。Godotからステージをコピーし直してください。"
 	for key in ["version", "stage", "width", "height", "tileSize"]:
 		if data.get(key) != before[key]:
 			return "The document version, stage or grid does not match."
@@ -137,6 +147,9 @@ static func validate(stage: Node, before: Dictionary, data: Variant) -> String:
 		var info: Variant = data.layers.get(kind)
 		if not info is Dictionary or info.get("tileset") != before.layers[kind].tileset:
 			return "TileSet does not match: " + kind
+	var platform_error := validate_platforms(data.get("movingPlatforms"), int(before.width))
+	if not platform_error.is_empty():
+		return platform_error
 	if data.cells.size() > before.width * HEIGHT * before.layers.size():
 		return "Too many cells."
 	for cell in data.cells:
@@ -176,6 +189,7 @@ static func merge_stale(stage: Node, before: Dictionary, data: Dictionary) -> Di
 	var original := data.duplicate()
 	original.cells = source.get("cells")
 	original.markers = source.get("markers")
+	original.movingPlatforms = source.get("movingPlatforms")
 	original.base = token(before)
 	var edited := data.duplicate()
 	edited.base = original.base
@@ -185,13 +199,18 @@ static func merge_stale(stage: Node, before: Dictionary, data: Dictionary) -> Di
 			return {"error": error}
 	var cells := merge_entries(index_cells(before.cells), index_cells(original.cells), index_cells(edited.cells))
 	var markers := merge_entries(before.markers, original.markers, edited.markers)
+	var platforms := merge_entries(index_platforms(before.movingPlatforms), index_platforms(original.movingPlatforms), index_platforms(edited.movingPlatforms))
+	if platforms.has("conflict"):
+		return {"error": "Godot and MapEdit both changed moving platform: " + str(platforms.conflict)}
 	if cells.has("conflict") or markers.has("conflict"):
 		return {"error": "Godot and MapEdit both changed: " + str(cells.get("conflict", markers.get("conflict")))}
 	var candidate := before.duplicate()
 	candidate.base = original.base
 	candidate.cells = cells.entries.values()
 	candidate.markers = markers.entries
-	return {"data": candidate}
+	candidate.movingPlatforms = platforms.entries.values()
+	var error := validate(stage, before, candidate)
+	return {"data": candidate} if error.is_empty() else {"error": error}
 
 static func merge_entries(current: Dictionary, original: Dictionary, edited: Dictionary) -> Dictionary:
 	var result := current.duplicate()
@@ -268,7 +287,18 @@ static func diff(before: Dictionary, after: Dictionary) -> Dictionary:
 		for cell: Dictionary in next.values():
 			if cell.kind == "TerrainTiles":
 				terrain[Vector2i(cell.x, cell.y)] = true
+	var platforms_old := index_platforms(before.movingPlatforms)
+	var platforms_next := index_platforms(after.movingPlatforms)
+	var platform_removed := {}
+	var platform_placed := {}
+	for id in platforms_old:
+		if platforms_old[id] != platforms_next.get(id):
+			platform_removed[id] = platforms_old[id]
+	for id in platforms_next:
+		if platforms_next[id] != platforms_old.get(id):
+			platform_placed[id] = platforms_next[id]
 	return {"old": removed, "next": placed, "markers": markers,
+		"platforms_old": platform_removed, "platforms_next": platform_placed,
 		"terrain_changed": terrain_changed, "terrain": terrain,
 		"checkpoints_added": checkpoints_added, "checkpoints_removed": checkpoints_removed}
 
@@ -304,6 +334,19 @@ static func commit(history: EditorUndoRedoManager, stage: Node, changes: Diction
 		checkpoint.name = path.trim_prefix(CHECKPOINT_PREFIX)
 		checkpoint.position = changes.checkpoints_added[path]
 		add_scene_child(history, checkpoints, checkpoint, stage)
+	var platforms := stage.get_node("MovingPlatforms")
+	var removed_platforms: Array[Node] = []
+	for platform in platforms.get_children():
+		if platform is MovingPlatform and changes.platforms_old.has(platform.placement_id):
+			removed_platforms.append(platform)
+	removed_platforms.reverse()
+	for platform in removed_platforms:
+		remove_scene_child(history, platforms, platform, stage)
+	for data in changes.platforms_next.values():
+		var platform := PLATFORM_SCENE.instantiate()
+		platform.name = "Platform_" + data.id
+		platform.configure(data)
+		add_scene_child(history, platforms, platform, stage)
 	if changes.terrain_changed:
 		sync_terrain(history, stage, changes.terrain)
 	history.commit_action()
@@ -354,3 +397,49 @@ static func add_scene_child(history: EditorUndoRedoManager, parent: Node, child:
 	history.add_do_property(child, "owner", stage)
 	history.add_do_reference(child)
 	history.add_undo_method(parent, "remove_child", child)
+
+static func index_platforms(platforms: Array) -> Dictionary:
+	var result := {}
+	for platform: Dictionary in platforms:
+		result[platform.id] = platform
+	return result
+
+static func validate_platforms(value: Variant, width: int) -> String:
+	if not value is Array:
+		return "移動床データがありません。Godotからステージをコピーし直してください。"
+	var ids := {}
+	var starts := {}
+	for item in value:
+		if not item is Dictionary:
+			return "移動床の形式が不正です。"
+		var id: Variant = item.get("id")
+		if not id is String or id.is_empty() or id.length() > 64 or not valid_platform_id(id) or ids.has(id):
+			return "移動床のIDが不正または重複しています。"
+		ids[id] = true
+		for field in ["x", "y", "travel_cells", "width_cells"]:
+			if not integer(item.get(field), 0 if field in ["x", "y"] else 1, width):
+				return "移動床のマス数が不正です: " + field
+		if not MovingPlatform.DIRECTIONS.has(item.get("direction")):
+			return "移動床の方向が不正です。"
+		for field in ["speed", "endpoint_wait"]:
+			var number: Variant = item.get(field)
+			if not (number is int or number is float) or not is_finite(number):
+				return "移動床の速度・待機時間が不正です。"
+		if item.speed < 32 or item.speed > 160 or item.endpoint_wait < 0 or item.endpoint_wait > 5:
+			return "移動床の速度・待機時間が範囲外です。"
+		var a := Vector2(item.x, item.y)
+		var b: Vector2 = a + MovingPlatform.DIRECTIONS[item.direction] * item.travel_cells
+		for point: Vector2 in [a, b]:
+			if point.x < 0 or point.y < 0 or point.x + item.width_cells > width or point.y >= HEIGHT:
+				return "移動床の始点または終点がマップ範囲外です。"
+		if starts.has(a):
+			return "移動床の始点が重複しています。"
+		starts[a] = true
+	return ""
+
+static func valid_platform_id(id: String) -> bool:
+	for character in id:
+		var code := character.unicode_at(0)
+		if not (code >= 48 and code <= 57 or code >= 65 and code <= 90 or code >= 97 and code <= 122 or character in ["_", "-"]):
+			return false
+	return true

@@ -8,7 +8,7 @@ const Settings = preload("res://scripts/game_settings.gd")
 var settings: Settings
 var elapsed := 0.0
 var follows_surface := false
-var surface: RigidBody2D
+var surface: PhysicsBody2D
 var local_point := Vector2.ZERO
 var local_normal := Vector2.UP
 
@@ -22,7 +22,7 @@ func _start(point: Vector2, normal: Vector2, impact_speed: float, body: Node2D) 
 	texture = HEAVY if impact_speed >= maxf(settings.landing_dust_heavy_speed, settings.landing_dust_minimum_speed) else NORMAL
 	global_position = point
 	global_rotation = Vector2.UP.angle_to(normal)
-	surface = body as RigidBody2D
+	surface = body as PhysicsBody2D
 	follows_surface = surface != null
 	if follows_surface:
 		local_point = surface.to_local(point)

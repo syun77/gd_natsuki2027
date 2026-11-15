@@ -515,3 +515,5 @@ position = Vector2(0, 16)
 tile_map_data = PackedByteArray("AAAGABIAAAAAAAAAAAAgABQAAAAAAAAAAABSABQAAAAAAAAAAAA=")
 tile_set = ExtResource("baguette")
 collision_enabled = false
+
+[node name="MovingPlatforms" type="Node2D" parent="."]

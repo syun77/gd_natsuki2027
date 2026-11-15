@@ -109,7 +109,8 @@ func verify() -> void:
 	game = current_scene
 	game.set_physics_process(false)
 	check(game.active_checkpoint.is_empty(), "Manual restart clears checkpoint")
-	check(game.player.global_position.distance_to(game.get_node("TheaterStage/PlacementMarkers/PlayerSpawn").global_position) < 4, "Manual restart returns to entrance")
+	check(game.player.global_position.distance_to(game.entrance.global_position) < 4, "Manual restart returns to floor-aligned entrance")
+	game._physics_process(game.entrance.TOTAL_TIME)
 	game.player.position.y = game.settings.restart_y + 1
 	game._physics_process(1.0/60.0)
 	await scene_changed

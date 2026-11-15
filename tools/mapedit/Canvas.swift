@@ -38,6 +38,11 @@ final class Canvas: NSView {
     var onPlacementShortcut: ((String) -> Bool)?
     var onOverviewChange: (() -> Void)?
     var selectedKind: String? { didSet { needsDisplay = true } }
+    var platformTemplate = MovingPlatform(id: "preview", x: 0, y: 0)
+    var selectedPlatformID: String?
+    var onPlatformSelection: (() -> Void)?
+    private var platformDragID: String?
+    private var platformDragAnchor: GridPoint?
     var tile: [Int]?
     var marker: String? { didSet { needsDisplay = true } }
     var onCommit: ((MapDocument) -> Void)?
@@ -57,7 +62,7 @@ final class Canvas: NSView {
 
     private static let colors: [String: NSColor] = [
         MapDocument.breakableKind: .systemOrange, "TerrainTiles": .systemBrown, "OneWayPlatforms": .systemTeal,
-        "GumPassBarriers": .systemCyan, "GumAnchors": .systemGreen,
+        MovingPlatform.kind: .systemMint, "GumPassBarriers": .systemCyan, "GumAnchors": .systemGreen,
         "Spikes": .systemRed, "GumBoxes": .systemMint, "Foods": .systemOrange, "Baguettes": .systemYellow, "MusicNotes": .systemPurple
     ]
 
@@ -205,6 +210,10 @@ final class Canvas: NSView {
                                      .font: NSFont.monospacedSystemFont(ofSize: 9, weight: .medium)])
             }
         }
+        for platform in document.movingPlatforms {
+            drawPlatform(platform, origin: origin, scale: zoom,
+                         selected: platform.id == selectedPlatformID, preview: false)
+        }
         for path in document.markers.keys.sorted() {
             guard let position = document.markers[path] else { continue }
             let x = origin.x + position[0] * zoom
@@ -229,6 +238,13 @@ final class Canvas: NSView {
             }
         }
         if let hover, document.contains(hover) {
+            if selectedKind == MovingPlatform.kind {
+                var platform = platformTemplate
+                platform.x = hover.x
+                platform.y = hover.y
+                drawPlatform(platform, origin: origin, scale: zoom, selected: true, preview: true)
+                return
+            }
             let cell = rect(hover)
             let previewRect = selectedKind.map { Self.placementRect(in: cell, kind: $0) }
                 ?? cell
@@ -332,12 +348,28 @@ final class Canvas: NSView {
         start = document
         previous = nil
         brush.removeAll()
-        stroke(event, erase: erase)
+        if selectedKind == MovingPlatform.kind {
+            beginPlatform(event, erase: erase)
+        } else {
+            stroke(event, erase: erase)
+        }
     }
 
     private func stroke(_ event: NSEvent, erase: Bool) {
         guard let start, let point = cell(at: location(event)) else {
             previous = nil
+            return
+        }
+        if selectedKind == MovingPlatform.kind {
+            guard !erase, let id = platformDragID, let anchor = platformDragAnchor,
+                  let index = start.movingPlatforms.firstIndex(where: { $0.id == id }) else { return }
+            var next = start
+            next.movingPlatforms[index].x += point.x - anchor.x
+            next.movingPlatforms[index].y += point.y - anchor.y
+            guard (try? next.validate()) != nil else { return }
+            next.source = document?.source
+            document = next
+            onPlatformSelection?()
             return
         }
         var next = start
@@ -372,9 +404,109 @@ final class Canvas: NSView {
         document = next
     }
 
+    var selectedPlatform: MovingPlatform? {
+        document?.movingPlatforms.first { $0.id == selectedPlatformID }
+    }
+
+    func updatePlatform(_ value: MovingPlatform) throws {
+        guard var next = document else { return }
+        if let id = selectedPlatformID, let index = next.movingPlatforms.firstIndex(where: { $0.id == id }) {
+            var changed = value
+            changed.id = id
+            changed.x = next.movingPlatforms[index].x
+            changed.y = next.movingPlatforms[index].y
+            next.movingPlatforms[index] = changed
+            try next.validate()
+            let previous = document!
+            guard next.movingPlatforms != previous.movingPlatforms else { return }
+            document = next
+            onCommit?(previous)
+        } else {
+            platformTemplate = value
+            needsDisplay = true
+        }
+        onPlatformSelection?()
+    }
+
+    private func beginPlatform(_ event: NSEvent, erase: Bool) {
+        guard var next = document, let point = cell(at: location(event)) else { return }
+        if let index = next.movingPlatforms.lastIndex(where: { $0.contains(point) }) {
+            selectedPlatformID = erase ? nil : next.movingPlatforms[index].id
+            if erase {
+                next.movingPlatforms.remove(at: index)
+                document = next
+            } else {
+                platformDragID = selectedPlatformID
+                platformDragAnchor = point
+            }
+        } else if !erase {
+            var platform = platformTemplate
+            platform.id = "p_" + UUID().uuidString.lowercased()
+            platform.x = point.x
+            platform.y = point.y
+            next.movingPlatforms.append(platform)
+            do {
+                try next.validate()
+                document = next
+                selectedPlatformID = platform.id
+            } catch {
+                onHover?(error.localizedDescription)
+            }
+        }
+        onPlatformSelection?()
+    }
+
+    func drawPlatform(_ platform: MovingPlatform, origin: CGPoint, scale: CGFloat,
+                      selected: Bool, preview: Bool, miniature: Bool = false) {
+        let unit = CGFloat(document?.tileSize ?? 32) * scale
+        let a = CGRect(x: origin.x + CGFloat(platform.x) * unit,
+                       y: origin.y + CGFloat(platform.y) * unit,
+                       width: CGFloat(platform.width_cells) * unit, height: max(1, 10 * scale))
+        let b = a.offsetBy(dx: CGFloat(platform.offset.x) * unit, dy: CGFloat(platform.offset.y) * unit)
+        let valid = document.map { (try? platform.validate(width: $0.width, height: $0.height)) != nil } ?? false
+        let color = valid ? placementColor(for: MovingPlatform.kind) : NSColor.systemRed
+        color.withAlphaComponent(preview ? 0.4 : 0.9).setFill()
+        a.fill()
+        if !miniature { drawPlacementOutline(in: a, kind: MovingPlatform.kind) }
+        color.withAlphaComponent(selected ? 0.12 : 0.05).setFill()
+        a.union(b).fill()
+        color.withAlphaComponent(selected ? 0.9 : 0.4).setStroke()
+        let outline = NSBezierPath(rect: b)
+        outline.lineWidth = 1
+        outline.stroke()
+        let path = NSBezierPath()
+        let from = CGPoint(x: a.midX, y: a.midY)
+        let to = CGPoint(x: b.midX, y: b.midY)
+        path.move(to: from)
+        path.line(to: to)
+        if !miniature {
+            let length = hypot(to.x - from.x, to.y - from.y)
+            if length > 0 {
+                let dx = (to.x - from.x) / length
+                let dy = (to.y - from.y) / length
+                for (tip, sign, size) in [(to, CGFloat(1), CGFloat(7)), (from, CGFloat(-1), CGFloat(5))] {
+                    path.move(to: CGPoint(x: tip.x - sign * dx * size - dy * size * 0.5,
+                                         y: tip.y - sign * dy * size + dx * size * 0.5))
+                    path.line(to: tip)
+                    path.line(to: CGPoint(x: tip.x - sign * dx * size + dy * size * 0.5,
+                                         y: tip.y - sign * dy * size - dx * size * 0.5))
+                }
+            }
+        }
+        path.lineWidth = selected ? 2 : 1
+        path.stroke()
+        if selected && !miniature {
+            let names = ["up": "上", "down": "下", "left": "左", "right": "右"]
+            let label = "\(names[platform.direction] ?? "") \(platform.travel_cells)マス / \(platform.travel_cells * 32)px"
+            (label as NSString).draw(at: CGPoint(x: (from.x + to.x) / 2 + 4, y: (from.y + to.y) / 2 - 16),
+                withAttributes: [.foregroundColor: color, .backgroundColor: NSColor.controlBackgroundColor,
+                                 .font: NSFont.systemFont(ofSize: 11)])
+        }
+    }
+
     private func finish() {
-        defer { panning = false; start = nil }
-        guard let start, let document, start.cells != document.cells || start.markers != document.markers else { return }
+        defer { panning = false; start = nil; platformDragID = nil; platformDragAnchor = nil }
+        guard let start, let document, start.cells != document.cells || start.markers != document.markers || start.movingPlatforms != document.movingPlatforms else { return }
         onCommit?(start)
     }
 }
@@ -414,6 +546,10 @@ final class Minimap: NSView {
             let placement = Canvas.placementRect(in: bounds, kind: cell.kind)
             placement.fill()
             canvas.drawPlacementOutline(in: placement, kind: cell.kind, tile: cell.tile)
+        }
+        for platform in map.movingPlatforms {
+            canvas.drawPlatform(platform, origin: frame.origin, scale: scale,
+                                selected: platform.id == canvas.selectedPlatformID, preview: false, miniature: true)
         }
         for (path, point) in map.markers {
             canvas.placementColor(for: path).setFill()
