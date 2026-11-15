@@ -1,3 +1,10 @@
+## ゴール閉扉SE終了後のリザルト
+
+- Goal/status: ゴールのドア閉SE終了待ちを実装・検証完了。
+- Decisions/completed: StageExitがSoundEffects.playの閉扉voiceを保持し、閉アニメ後もactiveを維持。Gameの既存固定更新内でvoice実playing終了を検出してactive解除→クリア。固定秒数の追加待機なし、SE再生は一度だけ、ポーズは既存voice処理に従う。
+- Files: stage_exit.gd、verify_stage_exit.gd、specs/stage-exit-art/clear-results/sound-effects、AGENTS/WORKLOG。Verification: Godot4.5 exit/time_attack/sound suitesとSteam4.7 exit suite PASS/終了0。voice実終了/早期結果なし/大deltaで待機skip不可/音再発火なし/ポーズを検証。試験の再開直後1tick入力抑止を明示消費し、実audio終了後のframe完了を待つ。
+- Blockers: なし。Next action: F5でゴールし閉扉SE→リザルトのつながりを試聴。最終reviewでは既存Gameの完了判定を保持してvoice待機だけをStageExitへ局所化、重複SE/タイマー/非同期active変更を追加せず。git diff --check PASS。既存証明書/テスト環境best保存不可/終了resource警告のみ。
+
 ## リプレイ機能の無効化
 
 - Goal/status: タイトル/メニュー再生とリプレイ記録・保存・読込を無効化、実装/検証完了。

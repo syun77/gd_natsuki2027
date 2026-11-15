@@ -16,6 +16,7 @@ func verify() -> void:
 		var game = load(path).instantiate()
 		root.add_child(game)
 		game.set_physics_process(false)
+		game.debug_checkpoint_used = true
 		game._physics_process(game.entrance.TOTAL_TIME)
 		var door = game.exit_door
 		var player = game.player
@@ -63,7 +64,21 @@ func verify() -> void:
 		game._physics_process(0.2)
 		check(door.frame < 5 and door.frame > 0 and not game.cleared, "Closing keeps result hidden")
 		game._physics_process(0.21)
-		check(not door.active and door.frame == 0 and game.cleared, "Result only after fully closed")
+		check(door.active and door.frame == 0 and not game.cleared and door.close_voice.playing, "Closed door waits for actual close sound before results")
+		check(game.get_node_or_null("HUD/ClearResults") == null, "No result panel while close sound plays")
+		var close_voice: AudioStreamPlayer = door.close_voice
+		var close_sound_id := close_voice.get_instance_id()
+		game._physics_process(5.0)
+		check(door.close_voice.get_instance_id() == close_sound_id and not game.cleared, "Large simulation delta neither skips sound nor repeats it")
+		game.pause_menu.open()
+		await create_timer(0.08, true).timeout
+		check(not game.cleared and close_voice.stream_paused, "Pause freezes close sound and keeps results hidden")
+		game.pause_menu.close()
+		game._physics_process(1.0 / 60.0)
+		await close_voice.finished
+		await process_frame
+		game._physics_process(1.0 / 60.0)
+		check(not door.active and game.cleared, "Result appears after actual close sound finished")
 		var panels: int = game.get_node("HUD").get_child_count()
 		game._physics_process(0.2)
 		check(game.get_node("HUD").get_child_count() == panels, "Result only shown once")

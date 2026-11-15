@@ -17,6 +17,7 @@ var fall_speed := 0.0
 var body: CharacterBody2D
 var actor: AnimatedSprite2D
 var actor_color := Color.WHITE
+var close_voice: AudioStreamPlayer
 
 func _init() -> void:
 	texture = preload("res://assets/stage/restaurant_stage_exit.png")
@@ -68,6 +69,9 @@ func begin(player: CharacterBody2D, vertical_speed := 0.0) -> void:
 func step(delta: float) -> void:
 	if not active:
 		return
+	if elapsed >= TOTAL_TIME:
+		active = is_instance_valid(close_voice) and close_voice.playing
+		return
 	if settling:
 		_step_landing(delta)
 		return
@@ -90,9 +94,9 @@ func step(delta: float) -> void:
 		var progress := (elapsed - OPEN_TIME - FADE_TIME) / CLOSE_TIME
 		frame = maxi(0, 5 - int(progress * 6.0))
 	if elapsed >= TOTAL_TIME:
-		get_node("/root/SoundEffects").play(&"door_close")
+		close_voice = get_node("/root/SoundEffects").play(&"door_close")
 		frame = 0
-		active = false
+		active = is_instance_valid(close_voice) and close_voice.playing
 
 func _step_approach(delta: float) -> void:
 	var offset_to_door := Vector2(global_position.x - body.global_position.x, 0.0)

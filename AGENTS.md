@@ -493,7 +493,7 @@
 
 - Clear results: specs/clear-results.md; Game counts explicit ContactPickup.Kind NOTE/STAR and preserves counts across death. Adds1000 once before ReplayStore.finish. clear_results.gd pauses world with BGM ALWAYS until Game exit restores PAUSABLE. Mouse-only buttons use FOCUS_NONE and consume non-mouse input; R/Esc/OPTIONS cannot dismiss results. verify_time_attack/replay/lives/stage_exit cover integration.
 
-- Clear display timing: stage_exit.gd waits for landing and approach at120px/s, then door open0.4/fade0.5/close0.4s. Game._clear_stage calls synchronous ReplayStore.finish (ZSTD serialization/flush/rename) before creating UI; post-door stalls can include replay save cost (not measured).
+- Clear display timing: stage_exit.gd waits for landing and approach at120px/s, then door open0.4/fade0.5/close0.4s and actual door_close voice completion. Game observes completion inside exit_door.step, then _clear_stage presents results once. ReplayStore.finish is a no-op while replay is disabled.
 
 - Clear results show item icons/counts/subtotals without item-name text or mouse guidance; title is the sole action. clear_results.gd reveals top-down (0.15s fade +0.12s spacing), preserving layout, enabling title only after final reveal. Mouse-only input remains.
 
@@ -523,3 +523,5 @@
 - Input-only replay experiment (no runtime change): 13 replay comparisons on macOS at60Hz, render30/60/144 and4.5.1→4.7.2 matched observed player/rigid/gum/score/lives, including8200tick death/return run. Eight-action float32 tape262412bytes/ZSTD6168bytes for repetitive136.7s input. RNG particles and idle-time note yaw differ; no Windows/full-course guarantee. See specs/input-only-replay-verification.md; temporary harness in/tmp/input-replay-audit.
 
 - Replay is disabled by ReplayStore.ENABLED=false: no startup loader or recording callbacks; begin/capture/finish/load are no-ops, available/play reject even saved data. Keep title RELAY再生 and pause replay gray/disabled; preserve existing files. Direct replay scene returns to title. verify_replay.gd runs disabled-mode lifecycle/no-write checks; no input-only recording is active.
+
+- Goal StageExit retains door_close AudioStreamPlayer after full close and keeps active until playing ends; Game must observe active transition inside exit_door.step to call _clear_stage. Do not asynchronously set active=false from finished (Game would skip exit branch). Wait uses actual audio, no timer; pause freezes voice. verify_stage_exit checks full-close waiting, real finished, no repeat/large-delta skip and paused voice.

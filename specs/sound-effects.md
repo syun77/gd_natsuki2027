@@ -19,7 +19,7 @@ SoundEffects Autoload が非位置依存の AudioStreamPlayer を再生し、終
 
 検証: `tools/verify_sound_effects.gd` と controls / gum / player / one_up / checkpoint / spike の各検証。
 
-入口・出口のドアは開き始めに door1.wav（door_open）、閉じるアニメーション完了時に door2.wav（door_close）を各1回再生する。入口の待機中と出口の着地・中央への移動中は再生しない。
+入口・出口のドアは開き始めに door1.wav（door_open）、閉じるアニメーション完了時に door2.wav（door_close）を各1回再生する。入口の待機中と出口の着地・中央への移動中は再生しない。出口は閉扉SEの再生終了を待ってからリザルトを表示する。待機中も閉じたドア・消えたプレイヤーを保持し、ポーズでSEも停止する。
 
 ## BGM
 
