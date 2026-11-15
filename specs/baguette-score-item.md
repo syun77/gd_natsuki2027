@@ -7,3 +7,5 @@
 スプライトは32×32 pxの透過PNG。原本は `images/items/star.png`、Godot用のコピーは `natsuki2027/assets/items/star.png`。最近傍フィルタで表示する。スターと音符はプレイヤー接触による拾得処理を共有する。
 
 星は黄色い五芒星、金色の影と濃い金茶の輪郭、淡黄色ハイライト。生成元は `images/items/star_source.png`。組み込み画像生成後32pxへnearest縮小、runtimeへ同一コピー。配置の識別子は `Baguettes`、シーンは `scenes/items/baguette.tscn`、TileSetとlayoutは同名リソースで管理する。得点30・接触取得・item3.wav・死亡時状態保持は共通取得処理のまま。MapEditの表示名は「スター」。生成プロンプトは `specs/star-item-image-prompt.txt`。
+
+クリア時は取得数をリザルトへ表示する。音符/スターの個別累計は死亡復帰時も保持し、クリアボーナス1,000点を一度だけ加算する。マウス専用の結果表示は `specs/clear-results.md` を参照。

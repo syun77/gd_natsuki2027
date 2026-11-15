@@ -17,7 +17,7 @@ const CLIPS := {
 const MAX_VOICES := 24
 signal played(cue: StringName)
 
-func play(cue: StringName) -> void:
+func play(cue: StringName) -> AudioStreamPlayer:
 	if get_child_count() >= MAX_VOICES:
 		var oldest := get_child(0)
 		remove_child(oldest)
@@ -28,3 +28,4 @@ func play(cue: StringName) -> void:
 	voice.finished.connect(voice.queue_free)
 	voice.play()
 	played.emit(cue)
+	return voice

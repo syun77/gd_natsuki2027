@@ -11,6 +11,7 @@ var turn_elapsed := 0.0
 
 func _init() -> void:
 	points = 10
+	kind = Kind.NOTE
 
 func _ready() -> void:
 	# Each placed note owns its uniform; stable position phases avoid synchronized rows.

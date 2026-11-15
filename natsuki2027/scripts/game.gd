@@ -9,6 +9,10 @@ const TIME_ATTACK_RECORD := "user://time_attack_sprint.cfg"
 const SPIKE_LAYER := 64
 const RESPAWN_META := &"checkpoint_respawn"
 const INITIAL_LIVES := 3
+const CLEAR_BONUS := 1000
+const TIME_BONUS_PER_SECOND := 10
+const TIME_LIMIT := 180.0
+const TIME_WARNING := 30.0
 var active_checkpoint: NodePath
 @export var settings: Settings
 @export var stage_scene: PackedScene
@@ -18,11 +22,17 @@ var elapsed := 0.0
 var best_time := 0.0
 var debug_checkpoint_used := false
 var timer_label: Label
+var timer_gauge: ProgressBar
 var collected_items: Dictionary = {}
+var note_count := 0
+var star_count := 0
+var new_best := false
+var result_data: Dictionary = {}
 var score := 0
 var lives_remaining := INITIAL_LIVES
 var dying := false
 var game_over := false
+var death_voice: AudioStreamPlayer
 var lives_label: Label
 var lives_blink: Tween
 var cleared := false
@@ -44,8 +54,9 @@ var down_wait_release := false
 var manual_down_pressed := false
 
 func _exit_tree() -> void:
-	if game_over:
+	if game_over or cleared:
 		get_tree().paused = false
+	BackgroundMusic.process_mode = Node.PROCESS_MODE_PAUSABLE
 	if not preserve_bgm_on_exit:
 		BackgroundMusic.stop()
 
@@ -98,20 +109,32 @@ func _setup_timer() -> void:
 	var record := ConfigFile.new()
 	if record.load(TIME_ATTACK_RECORD) == OK:
 		best_time = record.get_value("record", "seconds", 0.0)
-	timer_label.text = "%sTIME %.2f" % ["DEBUG " if debug_checkpoint_used else "", elapsed]
+	timer_gauge = $HUD/TimeGauge
+	_update_timer()
+
+func _update_timer() -> void:
+	var remaining := maxf(TIME_LIMIT - elapsed, 0.0)
+	var seconds := _remaining_seconds()
+	timer_label.text = "%sTIME %d:%02d" % ["DEBUG " if debug_checkpoint_used else "", seconds / 60, seconds % 60]
+	timer_gauge.value = remaining
+	var warning := remaining <= TIME_WARNING
+	var red_phase := int(floor((TIME_WARNING - remaining) / 0.35)) % 2 == 0
+	timer_label.modulate = Color(1.0, 0.2, 0.2) if warning and red_phase else Color.WHITE
+	timer_gauge.modulate = Color(1.0, 0.2, 0.2) if warning else Color.WHITE
 
 func _finish_time_attack() -> void:
 	if debug_checkpoint_used:
-		timer_label.text = "DEBUG TIME %.2f" % elapsed
+		_update_timer()
 		return
 	if best_time <= 0.0 or elapsed < best_time:
+		new_best = true
 		best_time = elapsed
 		var record := ConfigFile.new()
 		record.set_value("record", "seconds", best_time)
 		var error := record.save(TIME_ATTACK_RECORD)
 		if error != OK:
 			push_warning("Cannot save Time Attack record: %s" % error_string(error))
-	timer_label.text = "TIME %.2f  |  BEST %.2f" % [elapsed, best_time]
+	_update_timer()
 
 func _setup_pickups() -> void:
 	if get_tree().has_meta(RESPAWN_META):
@@ -119,6 +142,8 @@ func _setup_pickups() -> void:
 		if saved.get("scene") == scene_file_path:
 			collected_items = saved.get("collected_items", {}).duplicate()
 			score = saved.get("score", 0)
+			note_count = saved.get("note_count", 0)
+			star_count = saved.get("star_count", 0)
 			lives_remaining = saved.get("lives_remaining", INITIAL_LIVES)
 	$HUD/Score.text = "SCORE: %d" % score
 	lives_label = $HUD/Lives
@@ -137,13 +162,22 @@ func _register_pickups(host: Node) -> void:
 				host.remove_child(child)
 				child.queue_free()
 				continue
-			child.collected.connect(func(): collected_items[key] = true)
-			if child is OneUpCollectible:
-				child.collected.connect(_add_life)
-			else:
-				child.collected.connect(_add_score.bind(child.points))
+			child.collected.connect(_collect_pickup.bind(key, child))
 		else:
 			_register_pickups(child)
+
+func _collect_pickup(key: String, item: Node) -> void:
+	if collected_items.has(key):
+		return
+	collected_items[key] = true
+	if item is OneUpCollectible:
+		_add_life()
+	else:
+		if item.kind == ContactPickup.Kind.NOTE:
+			note_count += 1
+		else:
+			star_count += 1
+		_add_score(item.points)
 
 func _add_life() -> void:
 	lives_remaining += 1
@@ -266,15 +300,13 @@ func _setup_stage() -> void:
 			get_node(prop).position = placement.position
 
 func _physics_process(delta: float) -> void:
-	if restarting:
+	if restarting or cleared or game_over:
 		return
 	if suppress_gameplay_tick:
 		suppress_gameplay_tick = false
 		return
 	if Input.is_action_just_pressed("restart"):
 		restart()
-		return
-	if cleared or game_over:
 		return
 	if exit_door.active:
 		player.reset_motion()
@@ -294,8 +326,11 @@ func _physics_process(delta: float) -> void:
 		if not entrance.active:
 			gum.show()
 		return
-	elapsed += delta
-	timer_label.text = "%sTIME: %.2f" % ["DEBUG " if debug_checkpoint_used else "", elapsed]
+	elapsed = minf(elapsed + delta, TIME_LIMIT)
+	_update_timer()
+	if elapsed >= TIME_LIMIT:
+		_show_game_over("TIME UP")
+		return
 	if is_instance_valid(death_effect):
 		if death_effect.step(delta):
 			_finish_death()
@@ -378,7 +413,8 @@ func _begin_death() -> bool:
 	dying = true
 	lives_remaining -= 1
 	_update_lives()
-	SoundEffects.play(&"dead")
+	death_voice = SoundEffects.play(&"dead")
+	death_voice.process_mode = Node.PROCESS_MODE_ALWAYS
 	return true
 
 func _finish_death() -> void:
@@ -387,7 +423,9 @@ func _finish_death() -> void:
 	else:
 		_show_game_over()
 
-func _show_game_over() -> void:
+func _show_game_over(caption := "GAME OVER") -> void:
+	if game_over or cleared:
+		return
 	game_over = true
 	for child in get_children():
 		child.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -405,21 +443,14 @@ func _show_game_over() -> void:
 		death_effect.queue_free()
 	if get_tree().has_meta(RESPAWN_META):
 		get_tree().remove_meta(RESPAWN_META)
-	var column := _create_result_column()
-	var title := Label.new()
-	title.text = "GAME OVER"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(title)
-	for caption in ["リトライ", "タイトルに戻る"]:
-		var button := Button.new()
-		button.text = caption
-		button.custom_minimum_size.y = 64
-		column.add_child(button)
-		if caption == "リトライ":
-			button.pressed.connect(restart)
-			button.grab_focus()
-		else:
-			button.pressed.connect(return_to_title)
+	if is_instance_valid(death_voice) and death_voice.playing:
+		death_voice.finished.connect(_present_game_over_results.bind(caption), CONNECT_ONE_SHOT)
+	else:
+		_present_game_over_results(caption)
+
+func _present_game_over_results(caption: String) -> void:
+	if not restarting:
+		_present_results(caption)
 
 func restart(from_checkpoint := false) -> void:
 	if restarting:
@@ -434,7 +465,7 @@ func restart(from_checkpoint := false) -> void:
 			"scene": scene_file_path, "checkpoint": active_checkpoint, "elapsed": elapsed,
 			"debug_checkpoint_used": debug_checkpoint_used,
 			"collected_items": collected_items.duplicate(), "score": score,
-			"lives_remaining": lives_remaining,
+			"lives_remaining": lives_remaining, "note_count": note_count, "star_count": star_count,
 		})
 	elif get_tree().has_meta(RESPAWN_META):
 		get_tree().remove_meta(RESPAWN_META)
@@ -516,44 +547,32 @@ func return_to_title() -> void:
 	gum.detach("TITLE")
 	get_tree().call_deferred("change_scene_to_file", "res://scenes/title.tscn")
 
-func _create_result_column() -> VBoxContainer:
-	var center := CenterContainer.new()
-	center.process_mode = Node.PROCESS_MODE_ALWAYS
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	$HUD.add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(460, 200)
-	center.add_child(panel)
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 24)
-	panel.add_child(column)
-	return column
+func _remaining_seconds() -> int:
+	return ceili(maxf(TIME_LIMIT - elapsed, 0.0))
 
 func _clear_stage() -> void:
-	ReplayStore.finish()
+	if cleared or game_over or restarting:
+		return
 	cleared = true
+	var remaining_seconds := _remaining_seconds()
+	var time_bonus := remaining_seconds * TIME_BONUS_PER_SECOND
+	_add_score(CLEAR_BONUS + time_bonus)
+	ReplayStore.finish()
 	gum.detach("STAGE CLEAR")
-	var column := _create_result_column()
-	var title := Label.new()
-	title.text = "TIME %.2f  /  BEST %.2f" % [elapsed, best_time]
-	if debug_checkpoint_used:
-		title.text = "DEBUG TIME %.2f" % elapsed
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 40)
-	column.add_child(title)
-	var replay := Button.new()
-	replay.text = "リプレイ再生"
-	replay.disabled = not ReplayStore.available()
-	replay.custom_minimum_size.y = 64
-	column.add_child(replay)
-	if not ReplayStore.failure.is_empty():
-		var error_label := Label.new()
-		error_label.text = ReplayStore.failure
-		column.add_child(error_label)
-	replay.pressed.connect(func(): ReplayStore.play("res://scenes/title.tscn"))
-	var retry := Button.new()
-	retry.text = "リトライ"
-	retry.custom_minimum_size.y = 64
-	column.add_child(retry)
-	retry.pressed.connect(restart)
-	retry.grab_focus()
+	_present_results("DEBUG CLEAR" if debug_checkpoint_used else "STAGE CLEAR!", CLEAR_BONUS, time_bonus)
+
+func _present_results(caption: String, clear_bonus := 0, time_bonus := 0) -> void:
+	result_data = {"notes": note_count, "stars": star_count, "bonus": clear_bonus,
+		"remaining_seconds": _remaining_seconds(), "time_bonus": time_bonus,
+		"score": score, "elapsed": elapsed, "best": best_time,
+		"new_best": new_best, "debug": debug_checkpoint_used,
+		"cleared": cleared, "caption": caption}
+	pause_menu.close()
+	pause_menu.set_process_input(false)
+	BackgroundMusic.process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().paused = true
+	var results := preload("res://scripts/clear_results.gd").new()
+	results.data = result_data.duplicate(true)
+	results.replay_failure = ReplayStore.failure if cleared else ""
+	$HUD.add_child(results)
+	results.title_requested.connect(return_to_title)

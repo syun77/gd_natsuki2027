@@ -94,9 +94,22 @@ func verify() -> void:
 	if not entries.is_empty():
 		game._debug_move_to_checkpoint(entries[0].path)
 	check(not game.restarting, "Game-over debug navigation cannot revive player")
-	var retry := find_button(game.get_node("HUD"), "リトライ")
-	check(retry != null and retry.has_focus() and retry.can_process(), "Game-over retry has active focus while paused")
-	retry.pressed.emit()
+	check(not game.has_node("HUD/ClearResults"), "Game over waits for death SE")
+	check(game.death_voice.playing and game.death_voice.can_process(), "Death SE continues during game-over pause")
+	await game.death_voice.finished
+	var result := game.get_node("HUD/ClearResults")
+	check(result.data.bonus == 0 and result.data.time_bonus == 0 and result.data.score == game.score, "Game-over result preserves score without bonuses")
+	check(result.data.notes == game.note_count and result.data.stars == game.star_count, "Game-over result snapshots pickups")
+	var text := ""
+	for label in result.find_children("*", "Label", true, false):
+		text += label.text
+	check(text.contains("GAME OVER") and text.contains("TOTAL SCORE") and not text.contains("ボーナス") and not text.contains("BEST TIME"), "Game-over summary excludes clear rewards and best")
+	var title := find_button(result, "タイトルへ")
+	check(title != null and not title.has_focus() and title.disabled and title.can_process(), "Game-over title waits for reveal without focus")
+	game._show_game_over()
+	game._clear_stage()
+	check(game.score == result.data.score, "Repeated ending cannot award bonuses")
+	game.restart()
 	await frames()
 	game = current_scene
 	game.set_physics_process(false)
@@ -126,12 +139,19 @@ func verify() -> void:
 	await frames()
 	game = current_scene
 	game.set_physics_process(false)
-	check(not paused and game.lives_remaining == 3, "R restarts while game over is paused")
+	check(paused and game.game_over and game.lives_remaining == 0, "R cannot bypass game-over result")
+	game.restart()
+	await frames()
+	game = current_scene
+	game.set_physics_process(false)
 	game._physics_process(game.entrance.TOTAL_TIME)
 	game.lives_remaining = 1
 	game._die_on_spikes(game.player.global_position)
 	game._physics_process(2.0)
-	find_button(game.get_node("HUD"), "タイトルに戻る").pressed.emit()
+	if not game.has_node("HUD/ClearResults"):
+		await game.death_voice.finished
+	game.get_node("HUD/ClearResults").reveal_tween.custom_step(10.0)
+	find_button(game.get_node("HUD"), "タイトルへ").pressed.emit()
 	await frames()
 	check(not paused and current_scene.scene_file_path == "res://scenes/title.tscn", "Game-over title navigation unpauses")
 	print("Lives: ", "PASS" if failures == 0 else "FAIL")

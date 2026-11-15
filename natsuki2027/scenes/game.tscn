@@ -15,6 +15,12 @@
 [ext_resource type="Theme" uid="uid://clkee6ikd4b30" path="res://resources/hud_score_theme.tres" id="13"]
 [ext_resource type="Theme" uid="uid://ypw0ml8rlij5" path="res://resources/hud_timer_theme.tres" id="14"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1rjeh"]
+bg_color = Color(0.15686275, 0.64705884, 0.101960786, 0.25)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_time_fill"]
+bg_color = Color(0.15686275, 0.64705884, 0.101960786, 1)
+
 [node name="Game" type="Node2D" unique_id=924366412]
 script = ExtResource("3")
 settings = ExtResource("6")
@@ -78,18 +84,30 @@ offset_bottom = 60.0
 theme = ExtResource("13")
 text = "SCORE 0"
 
+[node name="TimeGauge" type="ProgressBar" parent="HUD" unique_id=1683901883]
+offset_left = 976.0
+offset_top = 24.0
+offset_right = 1264.0
+offset_bottom = 64.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_1rjeh")
+theme_override_styles/fill = SubResource("StyleBoxFlat_time_fill")
+max_value = 180.0
+value = 180.0
+show_percentage = false
+
 [node name="Timer" type="Label" parent="HUD" unique_id=1382531452]
+offset_left = 1032.0
+offset_top = 24.0
+offset_right = 1212.0
+offset_bottom = 68.0
+theme = ExtResource("14")
+text = "TIME 3:00"
+
+[node name="Lives" type="Label" parent="HUD" unique_id=1243516524]
 offset_left = 24.0
 offset_top = 64.0
-offset_right = 204.0
-offset_bottom = 108.0
-theme = ExtResource("14")
-text = "TIME 0.00"
-
-[node name="Lives" type="Label" parent="HUD"]
-offset_left = 24.0
-offset_top = 112.0
 offset_right = 264.0
-offset_bottom = 156.0
+offset_bottom = 108.0
 theme = ExtResource("13")
 text = "LIFE × 2"

@@ -2,6 +2,8 @@ extends Area2D
 
 const ScorePopup = preload("res://scripts/score_popup.gd")
 
+enum Kind { STAR, NOTE }
+@export var kind: Kind = Kind.STAR
 @export var points := 30
 
 signal collected

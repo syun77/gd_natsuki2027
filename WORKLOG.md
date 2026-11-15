@@ -1,3 +1,65 @@
+## 死亡SE終了後のリザルト
+
+- Goal/status: 固定1秒待機を撤去、死亡SEの実再生終了後に結果表示。実装・検証完了。
+- Decisions: SoundEffects.playはvoiceを返し、Gameが死亡voiceのみ保持/ポーズ中再生。終了済み/SEなし（TIME UP）は即表示。restart後callback抑止。
+- Files: game/sound_effects、verify_lives/time_attack、specs/clear-results、AGENTS/WORKLOG。
+- Verification/refactoring: verify_lives/time_attack/sound_effects全PASS/終了0。死亡voiceがpause中も処理可能/実finished後の結果、TIME UP即表示、通常結果回帰を確認。固定Tween/定数/旧参照を除去しcallback guard/voice所有を最終review、git diff --check PASS。既存証明書/終了resource警告のみ。Blockersなし。Next action: F5で死亡SE→結果の接続を試聴。
+
+## ゲームオーバーリザルト
+
+- Goal/status: 残機切れ/時間切れにも結果表示、ボーナスなし。実装・検証完了。
+- Decisions: 共通結果UI、GAME OVER/TIME UP、アイテム/経過時間/合計、ボーナス行とbest非表示。タイトルのみ/順次表示/マウス操作を共用。完走記録更新なし。
+- Files: game/clear_results、verify_lives/time_attack、specs、AGENTS/WORKLOG。
+- Verification/refactoring: verify_livesとverify_time_attack PASS/終了0。残機切れの個数/得点保持・両bonus0・非表示・重複防止・R遮断・タイトル復帰、TIME UP結果、通常クリアbonus/replay回帰を確認。結果生成/停止/BGMを_present_resultsへ集約し旧game-over UI helper削除、固定tick冒頭に終了guard統合。git diff --check PASS。既存証明書/終了resource警告のみ。Blockers: なし。Next action: F5で残機切れ/時間切れ表示確認。
+
+## クリア時タイムボーナス
+
+- Goal/status: 残り秒数×10を既存クリア1000点へ追加。実装・検証完了。
+- Decisions: HUDと同じ切上げ/0下限、確定elapsed参照、結果内訳とreplay最終scoreへ反映、一度だけ加算。
+- Files: game.gd、clear_results.gd、verify_time_attack.gd、specs/clear-results.md、AGENTS/WORKLOG。
+- Verification/refactoring: headless verify_time_attack PASS/終了0（端数切上げ168秒/1680点、97秒/970点表示、重複防止、replay合計、0下限、timeout）。既存証明書警告のみ。秒数計算をHUD/クリア共通helperへ集約、変更領域最終レビューとgit diff --check PASS。
+- Blockers: なし。Next action: F5完走で内訳表示を確認。
+
+## 残り時間ゲージの経過部分
+
+- Goal/status: ユーザー調整済みの配置と緑色を保持し、経過部分を薄くする。実装完了。
+- Decisions/refactoring: ProgressBarのFillを既存緑の不透明色、Backgroundを同色alpha0.25に明示。標準themeへの暗黙依存を除去、runtime追加なし。
+- Files: game.tscn、specs/time-attack-courses.md、WORKLOG/AGENTS。
+- Verification: 保存sceneのStyleBox/配置と最終構造を確認。verify_time_attack.gd PASS/終了0、git diff --check PASS。既存証明書警告のみ。
+- Blockers: なし。Next action: F5で経過部分の薄さを確認。
+
+## 3分制タイムアタック
+
+- Goal/status: 180秒自動終了、残り数字/ゲージ、30秒赤点滅。完了。
+- Decisions: 記録用elapsed維持、HUDは秒切上げ。0.35秒白赤切替。TIME UPは既存game-over停止/メニューを共用、bonus/best更新なし。死亡継続/入場/ポーズの計測規則を維持。
+- Files: game.gd、game.tscn、verify_time_attack.gd、specs/time-attack-courses.md、AGENTS/WORKLOG。既存変更を保持。
+- Verification/refactoring: verify_time_attack PASS/終了0（180開始、30秒境界/白赤/ゲージ、0秒停止/得点記録不変/retry）。verify_lives/verify_pause_menu PASS/終了0。git diff --check PASS。HUD gaugeをsceneへ配置して編集可能にし、表示更新を_update_timerへ集約、終了captionとbutton_captionの命名を分離。最終差分レビュー実施。既存証明書/終了resource警告のみ。指定.agents/ツール作成.mdは存在しない。
+- Blockers: なし。Next action: F5で数字/ゲージの見た目をプレイ確認。
+
+## リザルト簡素化と順次表示
+
+- Goal/status: 音符/★文字と案内文を除去、タイトルボタンのみ、上から順次表示。完了。
+- Decisions: アイコン/個数/小計を維持。レイアウト領域を確保してfadeで上から表示、最後にタイトルを有効化。マウス専用を維持。
+- Files: clear_results/game、verify_time_attack、specs/clear-results.md、AGENTS/WORKLOG。
+- Verification/refactoring: verify_time_attack.gd PASS/終了0（heading→time→item順序、表示完了前無効、唯一のtitle実マウスclick、キー/joy無効、ゼロ個/集計/死亡保持）。不要signals/replay可用性property/callerを削除、row helperからcaption引数除去。1280×768実描画/tmp/results-sequence.pngを目視し文字欠け/不要表示なし。git diff --check PASS。既存map差分を保持。
+- Blockers: なし。Next action: F5で完走し上からの表示テンポを確認。
+
+## リザルト表示待ち時間の原因確認
+
+- Goal/status: 表示前の待ち時間を調査、コード確認完了。runtime変更なし。
+- Findings: 着地待ち→扉中央へ120px/s接近→開0.4/消失0.5/閉0.4秒の演出後、同期ReplayStore.finishでZSTD保存/flush/renameを完了してからUI生成。扉終了後の追加停止は保存処理が候補、実時間の計測は未実施。入力誤操作防止用の待機timerはない。
+- Files: AGENTS.md、WORKLOG.md。
+- Verification: game.gd/stage_exit.gd/replay_store.gdの呼出順/定数を確認、runtime変更なしでテスト対象なし。
+- Blockers: なし。Next action: 改善依頼時は退場演出と保存遅延を分けて計測し、結果先行表示/保存分離を検討。
+
+## クリアリザルト実装
+
+- Goal/status: 承認仕様のリザルトを実装、マウス専用操作へ変更。実装・最終検証完了。
+- Decisions: 取得種別別集計/死亡保持、一度だけbonus、最終replay同期。背景tree pause/BGM継続、フォーカスなし/非マウス入力遮断、R/Esc無効。
+- Files: game/contact_pickup/music_note、clear_results UI、関連検証/specs/AGENTS。
+- Verification/refactoring: time_attack（取得24/2と1300点/ゼロ個1000点/NEW BEST/重複防止/実マウスretry+title/キーとjoy遮断/死亡保持/BGM policy復元）最終PASS・終了0。replay/lives/stage_exitもPASS・終了0。1280×768描画を/tmp/clear-results.pngで目視、欠けなし。結果UIを専用scriptへ分離し、game-over helperを用途名へ変更、重複cleared判定除去。import終了0、git diff --check PASS。既存sandbox証明書/Mono/editor設定/記録保存/終了resource警告のみ。native描画はsandbox外で成功、内側は終了134。指定.agents/ツール作成.mdは存在しない。
+- Blockers: なし。Next action: F5で完走してマウス専用リザルトをプレイ確認。
+
 ## クリアリザルト仕様検討
 
 - Goal/status: 音符/★取得数とクリアボーナス+1000を表示するリザルト仕様案を作成完了。runtime変更なし。

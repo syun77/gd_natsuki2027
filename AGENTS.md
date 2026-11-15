@@ -491,4 +491,19 @@
 
 - LIFE × 0 warning is owned by Game._update_lives: bound looping Tween alternates opaque white/red every0.35s (0.7s cycle); tree pause freezes it, 1UP restoring reserves kills tween and resets white. verify_lives.gd covers blink/recovery.
 
-- Clear results proposal is specs/clear-results.md (not implemented): note/star counts at10/30 points plus one-time1000 clear bonus, preserved across death; proposed final replay capture follows bonus. Distinguish this proposal from current runtime.
+- Clear results: specs/clear-results.md; Game counts explicit ContactPickup.Kind NOTE/STAR and preserves counts across death. Adds1000 once before ReplayStore.finish. clear_results.gd pauses world with BGM ALWAYS until Game exit restores PAUSABLE. Mouse-only buttons use FOCUS_NONE and consume non-mouse input; R/Esc/OPTIONS cannot dismiss results. verify_time_attack/replay/lives/stage_exit cover integration.
+
+- Clear display timing: stage_exit.gd waits for landing and approach at120px/s, then door open0.4/fade0.5/close0.4s. Game._clear_stage calls synchronous ReplayStore.finish (ZSTD serialization/flush/rename) before creating UI; post-door stalls can include replay save cost (not measured).
+
+- Clear results show item icons/counts/subtotals without item-name text or mouse guidance; title is the sole action. clear_results.gd reveals top-down (0.15s fade +0.12s spacing), preserving layout, enabling title only after final reveal. Mouse-only input remains.
+
+- Time Attack uses Game.TIME_LIMIT=180s, elapsed preserved for finish records/death respawn; HUD Timer counts remaining ceil seconds and TimeGauge tracks remaining time. <=30s flashes white/red every0.35s; timeout reuses game-over pause/menu as TIME UP without clear bonus/best update. verify_time_attack.gd covers threshold/expiry/retry.
+
+- HUD/TimeGauge in game.tscn uses explicit StyleBoxFlat fill (opaque user green) and background (same green alpha0.25) so elapsed area stays faint; preserve user HUD positioning.
+
+- Clear scoring adds CLEAR_BONUS1000 plus ceil(max(180-elapsed,0))×10 once; Game._remaining_seconds shares HUD rounding. Frozen result_data includes remaining_seconds/time_bonus; results show breakdown, ReplayStore.finish follows total update. verify_time_attack covers fractional seconds, repeat prevention, zero lower bound and replay score.
+
+- Game._present_results shares frozen result data/UI for clear, last-life GAME OVER and TIME UP. Only clear awards/displays bonuses and best; failures keep item score and completed replay records unchanged. All results use sequential reveal, mouse-only title button, paused world/BGM continuing. verify_lives/time_attack cover both failure endings.
+
+
+- Game death_voice stores SoundEffects.play(dead) returned AudioStreamPlayer and processes during pause. Game-over waits its actual finished signal (already ended/no voice => immediate); timeout has no death SE or fixed delay. verify_lives awaits real audio completion.
