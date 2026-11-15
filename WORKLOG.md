@@ -1,3 +1,19 @@
+## 観葉植物の接地位置修正
+
+- Goal/status: 実装・検証完了。鉢底の透明余白による7〜8pxの浮きを補正。
+- Completed/decisions: background_decor_tileset.tres床置き植物3種のtexture_originを大葉(0,-8)/フィカス・シダ(0,-7)に設定。描画のみ下移動。共有TileSetを使う両マップに反映、吊り鉢/他装飾/画像/配置セル/物理は変更なし。
+- Files: assets/tilesets/background_decor_tileset.tres、specs/restaurant-background-decor.md、AGENTS/WORKLOG。
+- Verification/refactoring: alpha bbox下端88/89/89を測定。Godot4.5.1で実TileData.texture_originとalpha境界からTime Attack全8鉢の下端=支持床上面を確認PASS、3セルの床支持も確認。既存verify_background_decor PASS/終了0。最終reviewで共通TileSetへ補正を集約し、個別セル移動/重複素材不要を確認。git diff --check PASS。既存証明書警告のみ。
+- Blockers: なし。Next action: F5で鉢底の接地を目視確認（native描画未確認）。
+
+## Time Attackマップの背景装飾配置
+
+- Goal/status: 配置・検証完了。現在のTime Attackに窓18・床置き観葉植物8・絵画16、計42個を追加。
+- Completed/decisions: 既存restaurant_background_decor atlas/TileSet再利用、専用BackgroundDecor（z=-5/nearest/既存控えめtint/衝突OFF）。窓は上部壁面、絵は下部余白、植物は3セル支持の床/足場。リング/収集物/トゲとスタンプ重複なし、入口出口/チェックポイント/移動床の周辺を避ける。配置正本は保存シーン。theater用generatorは未実行。
+- Files: scenes/stages/time_attack.tscn、specs/restaurant-background-decor.md、AGENTS/WORKLOG。
+- Verification/refactoring: /tmpのmap合成図で全ルートを目視、植物の天井上配置を除き足場上へ調整。装飾追加分を除去したscene textが変更前と完全一致。Godot4.5.1 live Game検査で42配置/内訳/96px stamps/物理なし/描画順PASS、既存time_attack/background_decor検証PASS/終了0。最終reviewで保存レイヤー単独へ整理しruntime処理/新規素材なし。git diff --check PASS。既存証明書/終了resource警告あり。
+- Blockers: なし。Next action: F5で実画面の密度/視認性をプレイ確認（native screenshot未取得）。
+
 ## 1UPボイスとダッキング
 
 - Goal/status: 実装・検証完了。1UP獲得確定時に既存item SEとvo_1up.wavを同時に1回再生。

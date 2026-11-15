@@ -12,6 +12,8 @@
 [ext_resource type="PackedScene" path="res://scenes/props/moving_platform_routes.tscn" id="moving_platform_routes"]
 [ext_resource type="TileSet" uid="uid://cn544jrpjobls" path="res://assets/hazards/spike_tileset.tres" id="spikes"]
 
+[ext_resource type="TileSet" path="res://assets/tilesets/background_decor_tileset.tres" id="background_decor"]
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_n2hvt"]
 shader = ExtResource("1_qb48e")
 
@@ -117,6 +119,14 @@ color = Color(0.32156864, 0.42745098, 0.4392157, 1)
 polygon = PackedVector2Array(0, 0, 22144, 0, 22144, 768, 0, 768)
 
 [node name="MovingPlatformRoutes" parent="." unique_id=251642142 instance=ExtResource("moving_platform_routes")]
+
+[node name="BackgroundDecor" type="TileMapLayer" parent="."]
+z_index = -5
+texture_filter = 1
+modulate = Color(0.82, 0.86, 0.84, 0.85)
+tile_map_data = PackedByteArray("AAAJABQAAAAAAAAAAAAUAAwAAAADAAAAAAAzABAAAAAGAAAAAAA+AA4AAAAAAAAAAABTABQAAAADAAAAAABfABQAAAAGAAAAAAB3ABQAAAAAAAAAAACCABQAAAADAAAAAAAIAAUAAAAAAAYAAAAUAAUAAAADAAYAAAAgAAUAAAAGAAYAAAAsAAUAAAAJAAYAAAA4AAUAAAAAAAYAAABEAAUAAAADAAYAAABQAAUAAAAGAAYAAABcAAUAAAAJAAYAAABoAAUAAAAAAAYAAAB0AAUAAAADAAYAAACAAAUAAAAGAAYAAACKAAUAAAAJAAYAAACYAAUAAAAAAAYAAACkAAcAAAADAAYAAACwAAUAAAAGAAYAAAC8AAcAAAAJAAYAAADIAAYAAAAAAAYAAADUAAMAAAADAAYAAAAMAA0AAAAAAAkAAAAmAA8AAAAGAAkAAAAzAAsAAAAJAAkAAABAABIAAAAAAAkAAABNAAwAAAADAAkAAABaAA4AAAAGAAkAAABnAAsAAAAJAAkAAAB0AAsAAAAAAAkAAACBAA0AAAADAAkAAACQAA8AAAAGAAkAAACbAAsAAAAJAAkAAACoAAsAAAAAAAkAAAC1AA0AAAADAAkAAADCAA8AAAAGAAkAAADPAAwAAAAJAAkAAADcAA8AAAAAAAkAAAA=")
+tile_set = ExtResource("background_decor")
+collision_enabled = false
 
 [node name="TerrainTiles" type="TileMapLayer" parent="." unique_id=2061069355]
 material = SubResource("ShaderMaterial_n2hvt")
