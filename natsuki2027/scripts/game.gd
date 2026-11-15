@@ -570,6 +570,7 @@ func _present_results(caption: String, clear_bonus := 0, time_bonus := 0) -> voi
 	pause_menu.close()
 	pause_menu.set_process_input(false)
 	BackgroundMusic.process_mode = Node.PROCESS_MODE_ALWAYS
+	BackgroundMusic.fade_out(1.0)
 	get_tree().paused = true
 	var results := preload("res://scripts/clear_results.gd").new()
 	results.data = result_data.duplicate(true)

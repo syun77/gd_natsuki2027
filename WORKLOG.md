@@ -1,3 +1,11 @@
+## リザルト音声演出
+
+- Goal/status: BGM1秒フェードアウトと各項目表示時の音符取得SEを実装・検証完了。
+- Completed/decisions: Gameの共通結果表示でBGMを線形フェード後stop。各非区切り線項目の表示開始でscore_itemを1回、結果voiceのみALWAYS。startでfade取消/音量復元。
+- Files: background_music.gd、clear_results.gd、game.gd、verify_time_attack.gd、specs/clear-results.md・sound-effects.md、AGENTS/WORKLOG。
+- Verification/refactoring: Godot4.5.1 verify_time_attack / verify_sound_effects PASS/終了0。背景pause中の半秒音量/停止、8項目SE、結果voice処理、次run音量復元を検証。フェード所有をBGM、表示SEをUIへ集約し最終review。git diff --check PASS。既存証明書/終了resource警告あり。
+- Blockers: なし。Next action: F5でゴール/ゲームオーバー時の音量・SE間隔を試聴。
+
 ## ゴール閉扉SE終了後のリザルト
 
 - Goal/status: ゴールのドア閉SE終了待ちを実装・検証完了。

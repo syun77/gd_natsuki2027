@@ -1,5 +1,9 @@
 extends SceneTree
 var failures := 0
+var result_cues := 0
+func count_result_cue(cue: StringName) -> void:
+	if cue == &"score_item":
+		result_cues += 1
 func _initialize() -> void:
 	call_deferred("verify")
 func check(value: bool, message: String) -> void:
@@ -79,6 +83,7 @@ func verify() -> void:
 	game.note_count = 24
 	game.star_count = 2
 	game.score = 300
+	root.get_node("SoundEffects").played.connect(count_result_cue)
 	game._clear_stage()
 	check(game.result_data.remaining_seconds == 168 and game.result_data.time_bonus == 1680, "Remaining seconds round up like HUD")
 	check(game.score == 2980 and game.result_data.notes == 24 and game.result_data.stars == 2, "Result adds clear bonus and snapshots counts")
@@ -114,7 +119,17 @@ func verify() -> void:
 	var buttons := result.find_children("*", "Button", true, false)
 	check(buttons.size() == 1 and buttons[0].text == "タイトルへ", "Only title button remains")
 	check(buttons[0].disabled, "Title cannot skip reveal")
+	var music = root.get_node("BackgroundMusic")
+	music.volume_linear = 1.0
+	music.fade_out(1.0)
+	music.fade_tween.stop()
+	music.fade_tween.custom_step(0.5)
+	check(music.playing and is_equal_approx(music.volume_linear, 0.5), "Result BGM fades halfway in 0.5 seconds while paused")
+	music.fade_tween.custom_step(0.5)
+	music.fade_tween.custom_step(0.001)
+	check(not music.playing and music.volume_linear < 0.0001, "Result BGM stops after one second")
 	result.reveal_tween.stop()
+	result_cues = 0
 	var labels := result.find_children("*", "Label", true, false)
 	result.reveal_tween.custom_step(0.16)
 	check(labels[0].modulate.a == 1.0 and labels[1].modulate.a == 0.0, "Heading appears before time")
@@ -122,6 +137,10 @@ func verify() -> void:
 	check(labels[1].modulate.a == 1.0 and labels[2].get_parent().modulate.a == 0.0, "Time appears before item rows")
 	result.reveal_tween.custom_step(10.0)
 	check(not buttons[0].disabled, "Title enables after all results")
+	check(result_cues == 8, "Each result item sounds once; separators are silent")
+	var voices := root.get_node("SoundEffects").get_children()
+	check(voices[-1].can_process() and voices[-1].playing, "Result note sound plays while world is paused")
+	root.get_node("SoundEffects").played.disconnect(count_result_cue)
 	await frames()
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
@@ -136,6 +155,7 @@ func verify() -> void:
 	find_button(current_scene, "START").pressed.emit()
 	await frames()
 	check(current_scene.score == 0 and current_scene.note_count == 0 and current_scene.star_count == 0, "New run resets result counts")
+	check(music.playing and is_equal_approx(music.volume_linear, 1.0), "New run restores normal BGM volume")
 	game = current_scene
 	game.set_physics_process(false)
 	game.debug_checkpoint_used = false

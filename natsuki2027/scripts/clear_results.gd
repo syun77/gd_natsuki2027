@@ -57,9 +57,14 @@ func _ready() -> void:
 		if item is HSeparator:
 			reveal_tween.tween_property(item, "modulate:a", 1.0, 0.0)
 		else:
+			reveal_tween.tween_callback(_play_reveal_sound)
 			reveal_tween.tween_property(item, "modulate:a", 1.0, 0.15)
 			reveal_tween.tween_interval(0.12)
 	reveal_tween.tween_callback(func(): title_button.disabled = false)
+
+func _play_reveal_sound() -> void:
+	var voice := SoundEffects.play(&"score_item")
+	voice.process_mode = Node.PROCESS_MODE_ALWAYS
 
 func _input(event: InputEvent) -> void:
 	if not event is InputEventMouse:

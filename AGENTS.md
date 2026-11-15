@@ -525,3 +525,5 @@
 - Replay is disabled by ReplayStore.ENABLED=false: no startup loader or recording callbacks; begin/capture/finish/load are no-ops, available/play reject even saved data. Keep title RELAY再生 and pause replay gray/disabled; preserve existing files. Direct replay scene returns to title. verify_replay.gd runs disabled-mode lifecycle/no-write checks; no input-only recording is active.
 
 - Goal StageExit retains door_close AudioStreamPlayer after full close and keeps active until playing ends; Game must observe active transition inside exit_door.step to call _clear_stage. Do not asynchronously set active=false from finished (Game would skip exit branch). Wait uses actual audio, no timer; pause freezes voice. verify_stage_exit checks full-close waiting, real finished, no repeat/large-delta skip and paused voice.
+
+- Results audio: Game starts BackgroundMusic.fade_out(1.0) when presenting any result; clear_results plays score_item at each non-separator reveal start using ALWAYS voices. BackgroundMusic.start cancels fade and restores volume; verify_time_attack covers pause/fade/reveal/restart.
