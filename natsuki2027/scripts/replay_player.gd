@@ -77,6 +77,8 @@ func _apply_frame(frame: Dictionary) -> void:
 				var label: Label = node.get_child(0)
 				label.text = data.text
 				label.size = data.size
+			"segments":
+				node.set_segments(data.points, data.color, data.width)
 			"particles":
 				node.circles = data.circles
 				node.queue_redraw()
@@ -121,6 +123,7 @@ func _apply_frame(frame: Dictionary) -> void:
 func _create_visual(data: Dictionary) -> Node2D:
 	var node: Node2D
 	match data.kind:
+		"segments": node = preload("res://scripts/line_segments.gd").new()
 		"particles": node = preload("res://scripts/replay_particles.gd").new()
 		"nine_patch":
 			node = Node2D.new()

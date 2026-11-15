@@ -99,11 +99,12 @@ GodotのAPI上の根拠: [AnimatableBody2D 4.5](https://docs.godotengine.org/en/
 
 - 原画: `images/tilesets/restaurant_moving_platform_source.png`。
 - ゲーム用: `images/tilesets/restaurant_moving_platform.png`、同一コピー `natsuki2027/assets/tilesets/restaurant_moving_platform.png`。
-- 64×10px透過RGBA。クリームの天板、ミントの前面、落ち着いたティールの輪郭、左右端のコーラル飾り。上下左右移動で共通使用し、向きの矢印は画像へ描き込まない。
+- 64×10px透過RGBA。クリームの天板、半透明ミントの前面、落ち着いたティールの輪郭、左右端のコーラル飾り。上下左右移動で共通使用し、向きの矢印は画像へ描き込まない。
 - スライス余白: left=8、right=8、top=2、bottom=2px。横幅最小32px、高さ10px固定。上下の余白は固定し、高さ変更は設計対象外。9領域は一枚の画像で、ガイド線は含まない。
-- 原画のalpha>=128の外接矩形(50,270)〜(2122,453)を切り出し、nearestで64×10へ整形。生成alphaを保持。スライスは整形後の座標を使う。
-- `images/tilesets/restaurant_moving_platform_preview.png` は32/96/192px幅の確認用。左右端は固定、中央のみ横伸長。画像幅はwidth_cells×32px、衝突幅はさらに左右各4pxを加算して更新する。MapEditの床横幅は表示幅を表す。
-- 組み込みimagegenを使用。最終プロンプトは [moving-platform-image-prompt.txt](moving-platform-image-prompt.txt)。ランタイムはNinePatchRectで9-slice描画し、MapEditは始点の床を色付きの帯と範囲矢印で表示する。
+- 原画は組み込みimagegenによる部分透過編集。x45〜2118の帯を使い、上面y223〜270→2行、半透明面y320〜422→6行、下縁y429〜447→2行へnearestで正規化する。生成alphaを保持し、9-sliceは64×10へ整形後の座標を使う。
+- 中央面（x8〜55/y2〜7）の実alphaは77〜112/255（約30〜44%、平均約37%）、上面と左右端はほぼ100%、下縁は平均約76%。ノード全体のalphaは1を維持する。
+- `images/tilesets/restaurant_moving_platform_preview.png` は32/96/192px幅で背後へ点線を合成した確認用。点線はこのプレビューだけに含まれ、ゲーム用PNGには含めない。左右端は固定、中央のみ横伸長。画像幅はwidth_cells×32px、衝突幅はさらに左右各4pxを加算して更新する。MapEditの床横幅は表示幅を表す。
+- 組み込みimagegenを使用。部分透過編集の採用プロンプトは [moving-platform-glass-image-prompt.txt](moving-platform-glass-image-prompt.txt)。ランタイムはNinePatchRectで9-slice描画し、MapEditは始点の床を色付きの帯と範囲矢印で表示する。
 
 ## 保存済み配置と確認手順
 
@@ -117,4 +118,8 @@ MapEditで「移動床」を選び、次に置く床の設定を「設定を確�
 - `verify_moving_platform_exchange.gd`（`--editor`を追加）: 両ステージの移動床追加・変更・削除、保存再読込、Undo/Redo、独立変更の統合、同一床競合、重複始点・範囲外・不正値拒否。
 - `verify_mapedit.gd`（`--editor`を追加）と `verify_player.gd`、`verify_one_way.gd`、`verify_compression.gd`、`verify_landing_dust.gd`、`verify_replay.gd` を併用する。
 
-リプレイは描画記録形式version2で、NinePatchRectの位置・サイズ・テクスチャ・4辺の余白を記録する。再生中に床の物理や駆動スクリプトは動かさない。
+リプレイは描画記録形式version3で、NinePatchRectの位置・サイズ・テクスチャ・4辺の余白を記録する。再生中に床の物理や駆動スクリプトは動かさない。
+
+## ゲーム画面の可動範囲表示
+
+移動床の後ろに固定する点線と端部ストッパーは [moving-platform-route-guide.md](moving-platform-route-guide.md) を参照。床の中央y5へ重ね、半透明の面から透かして表示する。Game SettingsのMoving Platform Routeで表示と色を変更できる。

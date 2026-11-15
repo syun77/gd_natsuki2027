@@ -7,6 +7,7 @@ GodotのFileSystemで `res://resources/game_settings.tres` を選択し、Inspec
 | Inspectorのグループ | 主な項目 |
 | --- | --- |
 | Player Movement | 走行速度、地上／空中の入力加速度、地面の摩擦、重力、蹴り出し速度、Coyote Time（床離脱後の猶予秒数）、プレイヤー質量 |
+| Moving Platform Route | ガイド表示ON/OFF、灰緑のガイド色（alpha含む、初期0.60/0.68/0.65/0.55） |
 | Player Contact | 接触余白0.75 px、反発係数0.1、深度補正率0.8、分離速度上限120 px/s |
 | Gum Physics | ばね係数、減衰、収縮速度、最小／最大長、最大張力、手動延長／短縮速度、手動延長上限の安全余裕 |
 | Gum Flight | 先端速度、回収速度、回収表示の最大寿命 |

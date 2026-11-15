@@ -45,6 +45,7 @@ func _exit_tree() -> void:
 func _ready() -> void:
 	BackgroundMusic.start()
 	_setup_stage()
+	$TheaterStage/MovingPlatformRoutes.bind(settings)
 	_setup_pickups()
 	spike_sweep = ShapeCast2D.new()
 	spike_sweep.shape = player_shape.shape
@@ -222,11 +223,13 @@ func _begin_exit() -> void:
 func _setup_stage() -> void:
 	if stage_scene != null:
 		var old_stage := $TheaterStage
+		var stage_index := old_stage.get_index()
 		remove_child(old_stage)
 		old_stage.free()
 		var selected_stage := stage_scene.instantiate()
 		selected_stage.name = "TheaterStage"
 		add_child(selected_stage)
+		move_child(selected_stage, stage_index)
 	camera.limit_right = stage_width
 	var prop_markers := {"LightBox": "EntranceLightBox", "HeavyBox": "EntranceHeavyBox", "PulleyTrolley": "PulleySpawn"}
 	for prop in prop_markers:

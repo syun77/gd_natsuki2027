@@ -26,11 +26,15 @@ func build(number: int) -> void:
 	stage = Node2D.new()
 	stage.name = "TheaterStage"
 	stage.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var moving_platforms := Node2D.new()
+	moving_platforms.name = "MovingPlatforms"
+	add(stage, moving_platforms)
 	var background := Polygon2D.new()
 	background.polygon = PackedVector2Array([Vector2.ZERO, Vector2(2048, 0), Vector2(2048, 768), Vector2(0, 768)])
 	background.color = Color("526d70") if number == 2 else Color("665f67")
 	background.z_index = -10
 	add(stage, background)
+	add(stage, preload("res://scenes/props/moving_platform_routes.tscn").instantiate())
 	var terrain := layer("TerrainTiles", tiles)
 	var body := StaticBody2D.new()
 	body.name = "Terrain"

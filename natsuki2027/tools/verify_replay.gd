@@ -30,9 +30,12 @@ func verify() -> void:
 	var first_frame: Dictionary = store.frames[0]
 	var has_tiles := false
 	var has_platform := false
+	var has_routes := false
 	for data in first_frame.changed.values():
 		has_tiles = has_tiles or data.kind == "tiles"
+		has_routes = has_routes or (data.kind == "segments" and not data.points.is_empty())
 		has_platform = has_platform or (data.kind == "nine_patch" and data.size == Vector2(96, 10) and data.margins == Vector4i(8, 2, 8, 2))
+	check(has_routes, "Moving platform routes recorded")
 	check(has_platform, "Moving platform nine-slice artwork recorded")
 	check(has_tiles, "Initial frame contains saved map artwork")
 	var count: int = store.frames.size()
@@ -148,6 +151,8 @@ func verify() -> void:
 		check(replay.visuals.has(id), "Recorded final visual exists")
 		if replay.visuals.has(id):
 			check(replay.visuals[id].transform == expected[id].transform, "Final transform reproduces recorded state without drift")
+			if expected[id].kind == "segments":
+				check(replay.visuals[id].points == expected[id].points and replay.visuals[id].color == expected[id].color, "Replay restores route lines without running motors")
 			if expected[id].kind == "nine_patch":
 				var patch: NinePatchRect = replay.visuals[id].get_child(0)
 				check(patch.size == expected[id].size and patch.patch_margin_left == 8 and patch.patch_margin_right == 8, "Replay restores nine-slice width and fixed caps")

@@ -34,6 +34,7 @@ func build() -> void:
 	background.color = Color("526d70")
 	background.z_index = -10
 	add(stage, background)
+	add(stage, preload("res://scenes/props/moving_platform_routes.tscn").instantiate())
 	var terrain := layer("TerrainTiles", tiles)
 	var terrain_material := ShaderMaterial.new()
 	terrain_material.shader = preload("res://shaders/time_attack_terrain.gdshader")

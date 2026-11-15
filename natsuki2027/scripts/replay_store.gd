@@ -1,7 +1,7 @@
 extends Node
 ## Visual fixed-step recording: playback never runs gameplay or physics.
 const SAVE_PATH := "user://latest_replay.dat"
-const FORMAT_VERSION := 2
+const FORMAT_VERSION := 3
 var save_path := SAVE_PATH
 var sounds: Array = []
 var frames: Array = []
@@ -130,7 +130,9 @@ func _collect(node: Node, result: Dictionary) -> void:
 	if node is CanvasItem and not node.is_visible_in_tree():
 		return
 	var data: Dictionary = {}
-	if node.has_method("replay_particles"):
+	if node.has_method("replay_segments"):
+		data = node.replay_segments()
+	elif node.has_method("replay_particles"):
 		data = {"kind": "particles", "circles": node.replay_particles()}
 	elif node is NinePatchRect and node.texture != null:
 		data = {"kind": "nine_patch", "texture": node.texture.resource_path, "size": node.size,
@@ -230,6 +232,16 @@ func _valid_visual(data: Variant) -> bool:
 		"nine_patch": fields = {"texture": TYPE_STRING, "size": TYPE_VECTOR2, "margins": TYPE_VECTOR4I}
 		"tiles": fields = {"tileset": TYPE_STRING, "cells": TYPE_PACKED_BYTE_ARRAY}
 		"line": fields = {"points": TYPE_PACKED_VECTOR2_ARRAY, "width": TYPE_FLOAT, "color": TYPE_COLOR}
+		"segments":
+			if not data.get("points") is PackedVector2Array or data.points.size() % 2 != 0:
+				return false
+			for point in data.points:
+				if not point.is_finite(): return false
+			if not data.get("width") is float or not is_finite(data.width) or data.width <= 0.0 or not data.get("color") is Color:
+				return false
+			for component in [data.color.r, data.color.g, data.color.b, data.color.a]:
+				if not is_finite(component): return false
+			fields = {"width": TYPE_FLOAT, "color": TYPE_COLOR}
 		"polygon": fields = {"points": TYPE_PACKED_VECTOR2_ARRAY, "color": TYPE_COLOR}
 		"label": fields = {"text": TYPE_STRING, "theme": TYPE_STRING, "size": TYPE_VECTOR2}
 		"particles":

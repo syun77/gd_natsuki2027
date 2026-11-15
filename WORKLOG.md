@@ -1,3 +1,37 @@
+## 移動床の固定点線ガイド実装
+
+- Goal/status: 承認仕様の固定点線と端ストッパーをゲーム・リプレイへ実装。完了。
+- Completed/decisions: 全Gameステージに背景後/Terrain前の固定バッチNode。床横中央y5、4px描画/4px間隔/2px幅/8px端stop、共有Moving Platform Route設定ON・灰緑alpha0.55。配置/幅/方向/距離/追加削除だけ再構築、物理移動では固定。OFFはalpha0でreplay兄弟順維持。Game差替時の元tree index維持でPlayer背後を保証。Replay形式3へsegments（有限の点ペア/幅/色）追加。runtime configureは明示originを保存しphysics同期中でも正しい始点を使う。
+- Files changed: line_segments.gd、moving_platform_routes.gd/scene、moving_platform.gd、game/settings/resource、theater/time_attack/stage_2/stage_3と3生成器、replay_store/player、verify_moving_platform_routes/verify_replay、specs/game-settings/moving-platforms/moving-platform-route-guide/replay、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: routes36配置（4方向×距離1/4/8×幅1/3/6）・固定位置・編集/configure/削除・設定・schema拒否・4つの実Game描画順/ポーズPASS。moving/replay/pause/stage_select全suite PASS/終了0。MapEditはimport完了後に両stage PASS/終了0。3生成器はproject autoload有効でload/can_instantiate PASS（再生成なし）。独立線分描画を通常/replayで共用、要求を遅延集約しgeometryの時間更新なし、共有設定と源点処理を最終レビューしてroute/replay再実行PASS。git diff --check PASS。
+- Visual QA: sandbox内native起動はexit134、承認済みのsandbox外Compatibility検証を実行し自動終了0。/tmp/platform-routes-render.pngで横/縦ガイドとガラス床の透過を目視確認。既存の証明書/Mono/editor settings/終了resource警告、保存済み旧replay形式の非対応警告あり。最終検証にscript/parse errorなし。
+- Blockers: なし。Next action: F5で移動床を確認。共有設定Moving Platform Routeで表示と色を調整する。形式3のreplayは新しい走行で再記録する。
+
+## 移動床の中央面を半透明へ
+
+- Goal/status: 承認済みの部分透過案で移動床PNGを修正。完了。
+- Decisions: 組み込みimagegen編集。64×10/9-slice LR8/TB2、上面2px/左右端は不透明、中央35%、下縁75%。ガイドや物理の実装は本タスクに含めず、画像とruntimeコピーを更新する。
+- Files changed: images/tilesets/restaurant_moving_platform{,_source,_preview}.png、runtime同一PNG、specs/moving-platforms.md/moving-platform-route-guide.md/moving-platform-glass-image-prompt.txt、AGENTS.md、WORKLOG.md。
+- Verification: 組み込みimagegen出力の実alphaを検査し、透過のある採用原画から上2/中央6/下2行へnearest整形。alpha値は生成のまま保持、中央77〜112（平均約37%）/上面と端部253〜254/下縁平均約76%。32/96/192pxの点線合成プレビューを目視し透け方確認。追加修正候補はalphaが不透明へ戻ったため不採用。
+- Verification/refactoring final: 画像/仕様/スライス参照を整理。64×10RGBA・中央alpha77〜112・不透明上面/端部・runtime byte一致PASS。Godot再import終了0、import済みtextureの実alpha・幅32/96/192と判定+8pxを実sceneで確認PASS、verify_moving_platform全suite PASS/終了0。既存証明書/Mono/editor settings/終了resource警告のみ、script/parse errorなし。git diff --check PASS。
+- Blockers: なし。Next action: F5でガラス風移動床の視認性を確認。点線はプレビューでのみ合成し、ガイド本体は別途実装する。
+
+## ガイドを重ねるための移動床透過案
+
+- Goal/status: 床と点線を重ねる前提で画像透過の仕様を検討。提案完了、画像/コード変更なし。
+- Completed/decisions: 上面2pxと左右各8pxは100%不透明、中央面35%（30〜45%調整）、下縁2px75%のガラス風ミント床を推奨。64×10/9-slice余白維持、PNG部分alphaを使いnode alpha1。ガイド位置を床中央y5へ、ガイドalpha初期候補0.55へ揃える。短距離/広い床でも内部に経路が透けることを必須化。物理判定と左右各4px余裕は維持。
+- Files changed: specs/moving-platform-route-guide.md、AGENTS.md、WORKLOG.md。既存の模式図は床下ガイド案のまま、今回の透過案のプレビューとしては使わない。
+- Verification/refactoring: 現行64×10/LR8/TB2と照合し、不透明度と透過率を区別、ガイド位置/alpha/合格条件を統一。git diff --check確認。仕様のみでランタイム検証なし。
+- Blockers: なし。Next action: 画像制作依頼時に現行PNGを参照し、部分透過の候補画像を生成・9-slice幅違いで確認する。
+
+## 移動床の可動範囲描画の仕様検討
+
+- Goal/status: 移動床の後ろに往復範囲を示す表示を検討。仕様案と操作可能な模式図を作成、ゲーム実装なし。
+- Completed/decisions: 灰緑の固定点線（2px、4px描画/4px空き、alpha0.4候補）＋両端8pxストッパーを推奨。A/Bの床横中央・y16へ固定し、横移動は床下面から6px離して短距離/広い床でも隠れない。帯や残像は乗れる床と混同しやすいため初版不採用。表示専用、既存移動パラメータから生成、物理なし。背景TileMap既定Z0のため一律Z-1を避け、背景後/Terrain前へ挿入。独自描画のReplay対応も必要と明記。
+- Files changed: specs/moving-platform-route-guide.md、specs/moving-platforms.md、AGENTS.md、WORKLOG.md。模式図はthread visualization dirのmoving-platform-route.html。
+- Verification/refactoring: 現行scene/script/Zと仕様の照合。node_repl VMでJS構文、幅320/736・横縦・距離1/4/8・位置0/50/100の36状態と状態保存を検査PASS。HTMLのliteral markup確認・git diff --check PASS。描画の目視確認は未実施、ゲーム変更なしのため物理suite不要。
+- Blockers: なし。Next action: 案採用後、固定経路描画とリプレイ対応を実装し、背景上の見やすさ・短距離床・前後関係を実画面で調整する。
+
 ## 移動床のコリジョンに左右の余裕を追加
 
 - Goal/status: 見た目より少し広い移動床の判定へ変更。完了。

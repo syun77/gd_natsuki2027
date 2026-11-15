@@ -42,6 +42,7 @@ func _initialize() -> void:
 	for x in range(2, Layout.SIZE.x - 2):
 		put(iron, x, 5, 66)
 	add(stage, preload("res://scripts/background_decor.gd").create_layer())
+	add(stage, preload("res://scenes/props/moving_platform_routes.tscn").instantiate())
 	var terrain := layer("TerrainTiles")
 	var body := StaticBody2D.new()
 	body.name = "Terrain"

@@ -19,6 +19,18 @@ extends Resource
 @export_range(0.0, 0.3, 0.01) var jump_buffer_time := 0.12
 @export_range(0.01, 1000.0) var player_mass := 1.0
 
+@export_group("Moving Platform Route")
+## Presentation-only fixed route behind the translucent moving platform.
+@export var moving_platform_route_enabled := true:
+	set(value):
+		moving_platform_route_enabled = value
+		emit_changed()
+## Muted gray-green, including opacity; shared by dashes and end stops.
+@export var moving_platform_route_color := Color(0.60, 0.68, 0.65, 0.55):
+	set(value):
+		moving_platform_route_color = value
+		emit_changed()
+
 @export_group("Ladder")
 ## Vertical climbing speed (px/s); zero disables grabbing.
 @export_range(0.0, 600.0) var ladder_speed := 120.0

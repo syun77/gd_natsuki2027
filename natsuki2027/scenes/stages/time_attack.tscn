@@ -12,6 +12,8 @@
 [ext_resource type="PackedScene" path="res://scenes/props/moving_platform.tscn" id="moving_platform"]
 [ext_resource type="TileSet" uid="uid://cn544jrpjobls" path="res://assets/hazards/spike_tileset.tres" id="spikes"]
 
+[ext_resource type="PackedScene" path="res://scenes/props/moving_platform_routes.tscn" id="moving_platform_routes"]
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_n2hvt"]
 shader = ExtResource("1_qb48e")
 
@@ -109,6 +111,8 @@ texture_filter = 1
 z_index = -10
 color = Color(0.32156864, 0.42745098, 0.4392157, 1)
 polygon = PackedVector2Array(0, 0, 6144, 0, 6144, 768, 0, 768)
+
+[node name="MovingPlatformRoutes" parent="." instance=ExtResource("moving_platform_routes")]
 
 [node name="TerrainTiles" type="TileMapLayer" parent="." unique_id=2061069355]
 material = SubResource("ShaderMaterial_n2hvt")

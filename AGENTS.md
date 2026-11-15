@@ -457,10 +457,12 @@
 
 - 移動床専用9-slice画像はimages/tilesets/restaurant_moving_platform.pngと同一runtimeコピー（64×10RGBA）。余白L/R8、T/B2px、nearest、幅32px以上・高さ10px固定で中央横伸長。原画と32/96/192pxプレビューを併置。仕様はspecs/moving-platforms.md。
 
-- MapEdit交換形式はversion2。movingPlatforms配列とsourceへ個別id/始点/移動設定を保持し、三者merge・Undo/Redo対象。移動床のsleep剛体運搬には上面近くのwakeが必要（Godot4.5.1）；constant_linear_velocityの追加は二重速度になるため使わない。リプレイ描画形式もversion2でnine_patchを記録する。
+- MapEdit交換形式はversion2。movingPlatforms配列とsourceへ個別id/始点/移動設定を保持し、三者merge・Undo/Redo対象。移動床のsleep剛体運搬には上面近くのwakeが必要（Godot4.5.1）；constant_linear_velocityの追加は二重速度になるため使わない。リプレイ描画形式はversion3でnine_patchとsegmentsを記録する。
 
 - 移動床の自動carry/floor snapはis_on_floor=trueでもslide contacts空になる。Playerは直前の移動床を保持し、エンジン支持中だけUP法線で重力整理・摩擦を処理して、歩き離脱でも床速度をexternalへ一度引継ぐ。verify_moving_platformの左右walk-off回帰を保持。
 
 - Gameのポーズメニュー末尾にチェックポイント移動（デバッグ）。PlayerSpawnからの直線距離順（同距離NodePath順）に番号付けし、既存restart(true)で選択地点へ復帰。debug_checkpoint_usedを死亡metaで保持し、DEBUG TIME表示／自己ベスト更新除外。手動retryで解除。verify_debug_checkpoints.gd参照。
 
 - 移動床のコリジョンは表示幅より左右各4px広い（COLLISION_OVERHANG、幅3マス=画像96/判定104px）。厚5px・上面高・中央は維持。wake帯も同じ幅、Player床抜けはMovingPlatform.support_rect()を使う。既定scene形状とverify_moving_platformの実端/幅検査を同期する。コヨーテはユーザー実走で移動床でも有効と確認済み。
+
+- 移動床ガイドはMovingPlatformRoutes（moving_platform_routes.gd、line_segments.gd）のstage固定バッチ。床中央y5、4px描画/4px間隔、2px幅、8px端stop。背景群の後/TerrainTiles前に同一Z0で置く（背景はZ0なのでZ-1不可）。共有Moving Platform Route設定ON/灰緑alpha0.55。配置/幅/方向/距離変更だけ再構築、物理移動では更新しない。OFFはalpha0でリプレイ兄弟順を保持。Gameのstage差替は元tree indexを維持し、Playerより前に描かない。specs/moving-platform-route-guide.mdとverify_moving_platform_routes.gd参照。

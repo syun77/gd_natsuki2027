@@ -1,11 +1,18 @@
 @tool
 extends AnimatableBody2D
 ## One-way motor-driven platform; Game owns its fixed-step clock.
+signal route_changed
 const COLLISION_OVERHANG := 4.0
 const DIRECTIONS := {"up": Vector2.UP, "down": Vector2.DOWN, "left": Vector2.LEFT, "right": Vector2.RIGHT}
 @export var placement_id := ""
-@export_enum("up", "down", "left", "right") var direction := "right"
-@export_range(1, 192, 1) var travel_cells := 4
+@export_enum("up", "down", "left", "right") var direction := "right":
+	set(value):
+		direction = value
+		if is_node_ready(): route_changed.emit()
+@export_range(1, 192, 1) var travel_cells := 4:
+	set(value):
+		travel_cells = value
+		if is_node_ready(): route_changed.emit()
 @export_range(1, 192, 1) var width_cells := 3:
 	set(value):
 		width_cells = value
@@ -24,6 +31,8 @@ func _ready() -> void:
 	start_position = position
 	passenger_query.shape = passenger_band
 	passenger_query.collision_mask = 4
+	set_notify_transform(Engine.is_editor_hint())
+	route_changed.emit()
 
 func _update_width() -> void:
 	var width := float(width_cells * 32)
@@ -33,6 +42,18 @@ func _update_width() -> void:
 	rectangle.size = Vector2(width + COLLISION_OVERHANG * 2.0, 5)
 	$CollisionShape2D.shape = rectangle
 	$CollisionShape2D.position = Vector2(width * 0.5, 2.5)
+	if is_node_ready(): route_changed.emit()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSFORM_CHANGED and Engine.is_editor_hint() and is_node_ready():
+		route_changed.emit()
+
+func route_endpoints() -> PackedVector2Array:
+	var origin := position if Engine.is_editor_hint() or not is_node_ready() else start_position
+	var start := origin + Vector2(width_cells * 16.0, 5)
+	var end: Vector2 = start + DIRECTIONS[direction] * travel_cells * 32.0
+	var host := get_parent() as Node2D
+	return PackedVector2Array([host.to_global(start), host.to_global(end)])
 
 func support_rect() -> Rect2:
 	return global_transform * Rect2(Vector2(-COLLISION_OVERHANG, 0), Vector2(width_cells * 32.0 + COLLISION_OVERHANG * 2.0, 5))
@@ -59,22 +80,24 @@ func step(delta: float) -> void:
 	position = target
 
 func placement() -> Dictionary:
-	var origin := start_position if elapsed > 0.0 else position
+	var origin := position if Engine.is_editor_hint() or not is_node_ready() else start_position
 	return {"id": placement_id, "x": roundi(origin.x / 32.0), "y": roundi(origin.y / 32.0),
 		"direction": direction, "travel_cells": travel_cells, "width_cells": width_cells,
 		"speed": speed, "endpoint_wait": endpoint_wait}
 
 func configure(data: Dictionary) -> void:
 	placement_id = data.id
-	position = Vector2(data.x, data.y) * 32.0
+	var origin := Vector2(data.x, data.y) * 32.0
+	position = origin
 	direction = data.direction
 	travel_cells = int(data.travel_cells)
 	width_cells = int(data.width_cells)
 	speed = float(data.speed)
 	endpoint_wait = float(data.endpoint_wait)
-	start_position = position
+	start_position = origin
 	elapsed = 0.0
 	motion_velocity = Vector2.ZERO
+	route_changed.emit()
 
 func _wake_passengers() -> void:
 	# Moving an AnimatableBody does not wake sleeping rigid passengers in Godot 4.5.
