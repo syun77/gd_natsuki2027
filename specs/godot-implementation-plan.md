@@ -139,4 +139,4 @@ move_and_slide()
 
 ## 起動・タイトル
 
-F5は `scenes/game_time_attack.tscn` を直接起動する。メニューからタイトルへ戻り、タイムアタックを新規開始できる。Gameの直接F6起動も可能。OPTIONS／Escで全体を一時停止し、リトライ・タイトルに戻る・キャンセルを選ぶ。詳細は `time-attack-courses.md`。
+F5は `scenes/title.tscn` を起動する。STARTでタイムアタックを新規開始し、RELAY再生で保存済みリプレイを再生する。Gameの直接F6起動も可能。OPTIONS／Escで全体を一時停止し、リトライ・タイトルに戻る・キャンセルを選ぶ。詳細は `time-attack-courses.md`。

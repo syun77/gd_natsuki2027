@@ -25,6 +25,7 @@ func verify() -> void:
 	check(paused and menu.is_open, "Actual OPTIONS opens and pauses")
 	check(not game.restarting, "OPTIONS does not restart")
 	check(menu.buttons.size() == 5, "Five actions including replay and checkpoint debug")
+	check(menu.buttons[3].disabled, "Replay action cannot be selected while feature disabled")
 	check(menu.buttons[0].has_focus(), "Retry focused for pad")
 	var elapsed: float = game.entrance.elapsed
 	var position: Vector2 = game.player.position

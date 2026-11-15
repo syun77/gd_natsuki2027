@@ -18,6 +18,9 @@ func wait_frames(count := 3) -> void:
 
 func verify() -> void:
 	store = root.get_node("ReplayStore")
+	if not store.ENABLED:
+		await verify_disabled()
+		return
 	store.save_path = TEST_PATH
 	DirAccess.remove_absolute(TEST_PATH)
 	store.load_latest()
@@ -104,6 +107,21 @@ func verify() -> void:
 	store.latest = {}
 	store.load_latest()
 	check(store.latest == recorded, "Compressed disk roundtrip preserves every snapshot")
+	var background_store = load("res://scripts/replay_store.gd").new()
+	background_store.save_path = TEST_PATH
+	root.add_child(background_store)
+	check(background_store.latest.is_empty() and background_store._loader != null, "Startup returns before replay loading is adopted")
+	var loaded_signal := [false]
+	background_store.availability_changed.connect(func(): loaded_signal[0] = true)
+	paused = true
+	for attempt in 600:
+		if loaded_signal[0]:
+			break
+		await create_timer(0.01, true).timeout
+	check(loaded_signal[0] and background_store.latest == recorded, "Background replay validates and notifies UI even while paused")
+	paused = false
+	background_store.queue_free()
+
 	var shared_settings = load("res://resources/game_settings.tres")
 	var original_zoom: float = shared_settings.camera_normal_zoom
 	shared_settings.camera_normal_zoom = original_zoom * 1.25
@@ -171,7 +189,7 @@ func verify() -> void:
 	var menu_buttons := current_scene.find_children("*", "Button", true, false)
 	var replay_button: Button
 	for button in menu_buttons:
-		if button.text == "リプレイ再生":
+		if button.text == "RELAY再生":
 			replay_button = button
 	check(replay_button != null and not replay_button.disabled, "Mode menu has enabled replay action")
 	replay_button.pressed.emit()
@@ -209,4 +227,59 @@ func verify() -> void:
 	check(not store.available(), "Unsupported saved replay disabled safely")
 	DirAccess.remove_absolute(TEST_PATH)
 	print("Replay: %s" % ("PASS" if failures == 0 else "FAIL"))
+	quit(0 if failures == 0 else 1)
+
+func verify_disabled() -> void:
+	check(not store.is_processing() and not store.is_physics_processing() and store._loader == null, "Disabled replay starts no loader or recording callbacks")
+	store.save_path = TEST_PATH
+	var sentinel := PackedByteArray([12, 34, 56, 78])
+	var file := FileAccess.open(TEST_PATH, FileAccess.WRITE)
+	file.store_buffer(sentinel)
+	file.close()
+	store.load_latest()
+	check(store.latest.is_empty(), "Disabled replay does not read saved data")
+	change_scene_to_file("res://scenes/title.tscn")
+	await wait_frames()
+	var replay_button: Button = current_scene.get_node("Artwork/Menu/Replay")
+	check(replay_button.disabled and replay_button.focus_mode == Control.FOCUS_NONE and current_scene.start_button.has_focus(), "Title replay disabled; START focused")
+	store.latest = {"frames": []}
+	store.availability_changed.emit()
+	check(not store.available() and replay_button.disabled, "Even in-memory data cannot enable replay")
+	replay_button.pressed.emit()
+	await wait_frames()
+	check(current_scene.scene_file_path == "res://scenes/title.tscn", "Forced title replay signal cannot launch playback")
+	current_scene.start_button.pressed.emit()
+	await wait_frames()
+	var game = current_scene
+	check(game.pause_menu.buttons[3].disabled and game.pause_menu.buttons[3].focus_mode == Control.FOCUS_NONE, "Pause replay action disabled without focus")
+	check(store.frames.is_empty() and not is_instance_valid(store.game), "Game entry does not record")
+	game.entrance.step(game.entrance.TOTAL_TIME)
+	Input.action_press("move_right")
+	for i in 10:
+		await physics_frame
+		await process_frame
+	Input.action_release("move_right")
+	store.capture()
+	store.finish()
+	check(store.frames.is_empty() and store.previous.is_empty() and store.sounds.is_empty(), "Live ticks and explicit capture/finish create no recording")
+	game.pause_menu.buttons[3].pressed.emit()
+	await wait_frames()
+	check(current_scene == game, "Forced pause replay signal cannot launch playback")
+	game._clear_stage()
+	await wait_frames()
+	check(game.cleared and store.frames.is_empty(), "Clear still works without recording")
+	check(FileAccess.get_file_as_bytes(TEST_PATH) == sentinel and not FileAccess.file_exists(TEST_PATH + ".tmp"), "Clear never overwrites saved replay or writes temporary file")
+	game.restart()
+	await wait_frames()
+	check(store.frames.is_empty() and not is_instance_valid(store.game), "Retry does not restart recording")
+	change_scene_to_file("res://scenes/replay.tscn")
+	await wait_frames(5)
+	check(current_scene.scene_file_path == "res://scenes/title.tscn", "Direct replay scene returns safely to title")
+	store.latest = {}
+	DirAccess.remove_absolute(TEST_PATH)
+	store.save_path = TEST_PATH + ".new"
+	DirAccess.remove_absolute(store.save_path)
+	store.finish()
+	check(not FileAccess.file_exists(store.save_path), "Disabled replay cannot create a new save")
+	print("Replay disabled: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

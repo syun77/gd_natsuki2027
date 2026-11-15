@@ -23,4 +23,4 @@ SoundEffects Autoload が非位置依存の AudioStreamPlayer を再生し、終
 
 ## BGM
 
-メインゲーム開始時に BackgroundMusic Autoload（AudioStreamPlayer）が `assets/bgm/bgm_01.mp3` を再生する。MP3 インポート設定で先頭からループする。全ステージと Time Attack に共通。死亡リスポーンでは再生位置を維持して継続する（チェックポイントの有無によらない）。ポーズ中は一時停止し、ゲームシーンを離れると停止、手動リスタート時は先頭から再生する。リプレイも同じBGMを先頭からループ再生し、最初から再生でBGMも再開始、戻ると停止する。リプレイのポーズ・再生終了メニュー中は一時停止する。
+メインゲーム開始時に BackgroundMusic Autoload（AudioStreamPlayer）が `assets/bgm/bgm_01.mp3` を再生する。MP3 インポート設定で先頭からループする。全ステージと Time Attack に共通。死亡リスポーンでは再生位置を維持して継続する（チェックポイントの有無によらない）。ポーズ中は一時停止し、ゲームシーンを離れると停止、手動リスタート時は先頭から再生する。リプレイ機能は無効化中で、再生シーンのBGMは開始しない。

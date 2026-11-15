@@ -1,3 +1,73 @@
+## リプレイ機能の無効化
+
+- Goal/status: タイトル/メニュー再生とリプレイ記録・保存・読込を無効化、実装/検証完了。
+- Decisions/completed: ReplayStore.ENABLED=falseを単一gateにし起動loader/physics callbackとbegin/capture/finish/load/availableを停止。既存データ削除なし。タイトル2項目は保持しRELAY再生をグレーアウト、pause再生もdisabled/FOCUS_NONEで選択不可。直接replay scene実行は遅延title復帰。入力のみ記録への移行なし。
+- Files: replay_store/replay_player/title/pause_menu.gd、title.tscn、verify_replay/time_attack/pause_menu、specs/replay/title-screen/time-attack-courses/clear-results/sound-effects、AGENTS/WORKLOG。
+- Verification/refactoring: Godot4.5 verify_replay/time_attack/pause_menu/lives PASS/終了0。Steam4.7 verify_replay PASS/終了0。既存ファイル非上書き/新規保存なし/起動読込なし/強制signal非遷移/clear/retry/直接scene起動を確認。最終reviewでdisabled項目をfocus対象から除き、状態更新helperへ集約、replay/pauseを再実行PASS。git diff --check PASS。既存証明書/終了resource警告のみ。
+- Blockers: なし。Next action: 実行中なら停止→F5で新状態を確認。再有効化は別途依頼時に方式と検証を判断。
+
+## 入力のみのリプレイ検証
+
+- Goal/status: 入力保存→ゲーム再実行の再現性/容量を検証完了。runtimeと既存リプレイ原本は変更なし。
+- Completed/decisions: /tmp/input-replay-auditの別projectでReplayStoreを検証stubに置換、既存Game/Player/Gum/剛体を実行。8actionのfloat32強度をtick前に保存し別processで入力のみ再生。fixture/実TimeAttack/箱引き各1800ticksと箱引き8200ticksを試験。比較用JSONの状態は再生へ注入しない。
+- Files: specs/input-only-replay-verification.md、AGENTS/WORKLOG。コード/tape/観測JSON/集計は/tmp/input-replay-auditのみ。
+- Verification/refactoring: 60Hz物理、描画30/60/144fpsと4.5.1→4.7.2の計13再生比較で観測物理項目が1e-5以内、player位置差0px。LightBox66px移動、長時間で4死亡/復帰・4残機増加・score110一致。粒子は同fpsでも不一致、音符yawは異fpsで不一致。8200ticks tape262412bytes/ZSTD6168bytes（反復合成入力なので実プレイ圧縮率保証なし）。終了時のnull sceneを観測guardで除きrigid30を再実行、全log SCRIPT ERRORなし。既存終了resource警告のみ。検証コードのinput/観測責務とtick境界をreview、git diff --check確認。
+- Blockers: なし。Next action: 採用依頼時は形式/初期条件/seed/保存副作用抑止と再生実装を設計。Windows/コース完走/ポーズ・手動retryは未検証。
+
+## リプレイ容量の原因調査
+
+- Goal/status: 約40MBの保存リプレイを読取専用解析、原因特定・報告完了。runtime変更なし。
+- Findings/decisions: 8200frames/60Hz（約136.7秒）、disk41676998bytes/raw294060888bytes。音符yaw/shineで472011回の全node辞書保存、raw221279124bytes（全体約75.2%）。移動床20MB、tiles0.062MB。画面外も記録し、field単位差分なし。画像本体/複数run蓄積ではない。
+- Files: specs/replay-size-analysis.md、AGENTS/WORKLOG。解析スクリプトとJSONは/tmp/replay-size-audit。
+- Verification/refactoring: 独立Godot projectで原本を読取専用load、kind/texture別var_to_bytesを集計。音符項目だけ除外して別/tmpへZSTD再保存すると13855846bytes（66.8%減）。原本/runtime非変更。仕様記述をコード/数値と照合、計測単位と比較実験の非同等性を明記。git diff --check確認。
+- Blockers: なし。Next action: 改善依頼時は固定/可変プロパティ分離・field差分を優先し、装飾再計算の再現性とformat/player/検証を同時更新。
+
+## タイトル素材の3レイヤー分離
+
+- Goal/status: 背景・エフェクト・ロゴの独立PNG作成完了。
+- Completed/decisions: built-in imagegenで3素材を個別編集。黄色背景、ピンク/白のビーム/軌跡、ロゴ文字/軌道/星を分離。元素材/runtime保持。生成再構成でピクセル一致ではない。
+- Files: images/title/layers/title_{background,effects,logo}.png、specs/title-screen.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 3出力を目視し要素分離/文字確認。Pillowで背景/effects1672×941、logo1671×941、effects/logo透過RGBA・alpha0–255確認。共通寸法assertでロゴ幅1px差を検出、再拡縮せず原寸左上配置と仕様に明記。保存名/合成順/仕様を最終review。コード変更なし。
+- Blockers: なし。Next action: 必要時Godotで背景→エフェクト→ロゴを左上原寸配置し、菜月さんを別レイヤー追加。
+
+## エディタ起動時の空画面
+
+- Goal/status: エディタF5の空画面原因を特定し修正・検証完了。
+- Findings/decisions: Steam Godot4.7.2で空画面を再現、待機後title表示。ReplayStore._readyが約40MBの保存リプレイを同期展開/全frame検証しmain scene前をブロックしていた。Threadで読込/検証しmain threadで結果採用、availability_changedでtitle/pauseボタン更新。STARTは読込中も有効、新完走記録を旧読込結果で上書きしない。ALWAYS通知と明示paused guardでポーズ中の記録停止を両立。
+- Files: replay_store/title/pause_menu.gd、verify_replay、specs/replay/title-screen、AGENTS/WORKLOG。保存リプレイと別作業の画像生成を保持。
+- Verification/refactoring: 4.7実保存データありでtitle準備106ms/loader pending=true/START有効→game_time_attack遷移を確認。4.7実描画でtitleと読込中disabled再生を目視。4.7 verify_replayと4.5 verify_replay/time_attack PASS/終了0、非同期読込/ポーズ中通知/記録停止/再生とscene切替を検証。ThreadのUI変更をmainへ限定、read helper共通化、signal receiverをnode-bound methodへ整理して破棄済みbutton callbackを解消。git diff --check PASS。エディタ実行中のhot reloadは旧autoloadと新sceneを混在させるため完全停止して再実行が必要。
+- Blockers: なし。Next action: 実行を一度停止してF5で再起動。
+
+## キャラクターなしタイトル背景の作成
+
+- Goal/status: 菜月さん3.pngを後で重ねるための人物なし背景を作成完了。
+- Completed/decisions: メニュー除去済み背景をbuilt-in imagegenで編集。右の人物・発射点の手・左下の透かし・人物の影を除去し、黄/ピンクの背景を補完。元画像/runtimeは保持し別名保存。
+- Files: images/title/title_background_no_character.png、specs/title-screen.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 生成画像を目視し人物の残りなし/ロゴ維持/合成用空間を確認。PNGヘッダ1672×941、素材の保存先・仕様との整合を最終確認。コード変更なし。
+- Blockers: なし。Next action: 必要時、この背景に菜月さん3.pngを別レイヤーで重ねる。
+
+## タイトル経由のゲーム開始確認
+
+- Goal/status: 起動→タイトル→START→ゲームの接続を確認完了。
+- Completed/decisions: project.godotのmain_sceneはtitle.tscn、title._readyがSTARTを_startへ接続、_startがgame_time_attackへ遷移。要求どおり設定済みのためruntime追加変更なし。
+- Files: WORKLOG.md。Verification: 起動設定/ボタンsignal/遷移先を再照合。前タスクのverify_time_attackは同経路PASS。
+- Blockers: なし。Next action: GodotでF5を使いタイトルからSTART。F6は編集中scene単独実行。
+
+## 参考画像に合わせたタイトル画面
+
+- Goal/status: タイトル画面.pngを基にSTART／RELAY再生の2項目を実装、検証完了。
+- Completed/decisions: 参照のロゴ/菜月さん/黄とピンクの構図を保持して旧メニューをbuilt-in imagegenで除去。背景原本/同一runtimeコピーを保存し、scene上の実Buttonを重ねた。指定表記RELAY再生、保存済み完走データなしは無効。STARTはcheckpoint metadataを消し新規Time Attack、F5はtitleを起動。1672×941共通キャンバスのcover拡縮、背景のみlinear filter。
+- Files: images/title、assets/title、title.gd/tscn、project.godot、verify_time_attack/replay、specs/title-screenと操作/起動関連4仕様、AGENTS/WORKLOG。元画像・既存pixelfx未追跡ディレクトリを保持。
+- Verification/refactoring: editor import終了0、verify_time_attack/replay PASS/終了0（起動/2項目/START/結果復帰/再生）。1280×768実描画で配置/文字欠けなしを確認。生成カードhelperを除去し、レイアウトをscene・遷移/拡縮をscriptへ整理。背景コピー同一性とgit diff --check確認。既存sandbox証明書/editor設定保存/終了resource警告のみ。初回time_attackは後半fixtureの旧startup依存で停止、明示game sceneへ修正し再実行PASS。
+- Blockers: なし。Next action: F5でタイトルの見た目とマウス/パッドの操作感を確認。
+
+## Windowsの一般ゲームパッド対応確認
+
+- Goal/status: Windowsでの一般コントローラー対応を調査、回答準備完了。runtime変更なし。
+- Findings/decisions: project.godotはdevice=-1の標準Joypadボタン0/2/6、十字キー、左stick軸0/1を使用し、PS4機種限定ではない。Xbox系ではA=jump、X=gum、Start/Menu=pause。Godot4.5公式文書のSDL3対応を確認。Windows実機互換性は未検証。リザルトは既存仕様でマウス専用。
+- Files: WORKLOG.md、AGENTS.md（対応範囲の知識を追記）。Verification: InputMap/操作仕様/直近リザルト記録を照合、実行コード変更なしのためテスト対象なし。
+- Blockers: Windows実機検証はこの環境では不可。Next action: 必要時Windows版でXbox系USB接続から移動/照準/ボタン/再接続を検証。
+
 ## 死亡SE終了後のリザルト
 
 - Goal/status: 固定1秒待機を撤去、死亡SEの実再生終了後に結果表示。実装・検証完了。

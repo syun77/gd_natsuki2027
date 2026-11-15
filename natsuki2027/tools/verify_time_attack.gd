@@ -23,8 +23,12 @@ func verify() -> void:
 	var startup: String = ProjectSettings.get_setting("application/run/main_scene")
 	if startup.begins_with("uid://"):
 		startup = ResourceUID.get_id_path(ResourceUID.text_to_id(startup))
-	check(startup == "res://scenes/game_time_attack.tscn", "F5 starts Time Attack")
+	check(startup == "res://scenes/title.tscn", "F5 starts title")
 	change_scene_to_file(startup)
+	await frames()
+	check(current_scene.find_children("*", "Button", true, false).size() == 2, "Title has exactly two menu items")
+	check(find_button(current_scene, "RELAY再生") != null, "Title has replay action")
+	find_button(current_scene, "START").pressed.emit()
 	await frames()
 	var game = current_scene
 	game.set_physics_process(false)
@@ -61,14 +65,14 @@ func verify() -> void:
 	await frames()
 	check(current_scene.scene_file_path == "res://scenes/title.tscn" and not paused, "pause returns to title")
 	check(find_button(current_scene, "ステージを選ぶ") == null, "title contains no Stage Mode")
-	var start := find_button(current_scene, "挑戦する")
+	var start := find_button(current_scene, "START")
 	check(start != null and start.has_focus(), "Time Attack start has focus")
-	set_meta(&"checkpoint_respawn", {"scene": startup, "score": 999})
+	set_meta(&"checkpoint_respawn", {"scene": "res://scenes/game_time_attack.tscn", "score": 999})
 	start.pressed.emit()
 	await frames()
 	game = current_scene
 	game.set_physics_process(false)
-	check(game.scene_file_path == startup and game.score == 0 and game.elapsed == 0.0, "title starts clean Time Attack")
+	check(game.scene_file_path == "res://scenes/game_time_attack.tscn" and game.score == 0 and game.elapsed == 0.0, "title starts clean Time Attack")
 	game.debug_checkpoint_used = true
 	game.elapsed = 12.34
 	game._finish_time_attack()
@@ -78,7 +82,10 @@ func verify() -> void:
 	game._clear_stage()
 	check(game.result_data.remaining_seconds == 168 and game.result_data.time_bonus == 1680, "Remaining seconds round up like HUD")
 	check(game.score == 2980 and game.result_data.notes == 24 and game.result_data.stars == 2, "Result adds clear bonus and snapshots counts")
-	check(root.get_node("ReplayStore").latest.frames[-1].score == 2980, "Replay final score includes bonus")
+	if root.get_node("ReplayStore").ENABLED:
+		check(root.get_node("ReplayStore").latest.frames[-1].score == 2980, "Replay final score includes bonus")
+	else:
+		check(root.get_node("ReplayStore").frames.is_empty(), "Clear creates no replay frames while disabled")
 	game._clear_stage()
 	check(game.score == 2980, "Clear bonus cannot repeat")
 	var result = game.get_node("HUD/ClearResults")
@@ -126,7 +133,7 @@ func verify() -> void:
 	root.push_input(click, true)
 	await frames()
 	check(current_scene.scene_file_path == "res://scenes/title.tscn" and not paused, "Mouse title button exits results")
-	find_button(current_scene, "挑戦する").pressed.emit()
+	find_button(current_scene, "START").pressed.emit()
 	await frames()
 	check(current_scene.score == 0 and current_scene.note_count == 0 and current_scene.star_count == 0, "New run resets result counts")
 	game = current_scene
@@ -157,7 +164,7 @@ func verify() -> void:
 	await frames()
 	check(current_scene.scene_file_path == "res://scenes/title.tscn" and not paused, "Mouse title exit restores tree pause")
 	check(root.get_node("BackgroundMusic").process_mode == Node.PROCESS_MODE_PAUSABLE and not root.get_node("BackgroundMusic").playing, "Result exit restores normal BGM pause policy")
-	change_scene_to_file(startup)
+	change_scene_to_file("res://scenes/game_time_attack.tscn")
 	await frames()
 	game = current_scene
 	game.set_physics_process(false)

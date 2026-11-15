@@ -102,10 +102,14 @@ func add_replay_action(action: Callable) -> void:
 	main_column.add_child(button)
 	button.pressed.connect(action)
 	buttons.append(button)
-	# Availability changes when a run reaches the goal.
-	visibility_changed.connect(func(): button.disabled = not ReplayStore.available())
-	button.disabled = not ReplayStore.available()
+	ReplayStore.availability_changed.connect(_update_replay_button.bind(button))
+	visibility_changed.connect(_update_replay_button.bind(button))
+	_update_replay_button(button)
 	_set_focus_neighbors(buttons)
+
+func _update_replay_button(button: Button) -> void:
+	button.disabled = not ReplayStore.available()
+	button.focus_mode = Control.FOCUS_NONE if button.disabled else Control.FOCUS_ALL
 
 func _set_focus_neighbors(items: Array[Button]) -> void:
 	for index in items.size():

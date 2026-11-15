@@ -28,7 +28,7 @@
 
 - Current setting/art direction is a pop-colored family restaurant: cream ceramic, coral/mint trim, painted frames and muted teal background. `theater_*` filenames remain the current resource identifiers. Edit both atlas copies together (`images/tilesets/` and `natsuki2027/assets/tilesets/`); `restaurant_tileset_source.png` is the color-edit source.
 
-- The first editable map is `natsuki2027/scenes/stages/theater_stage.tscn` (160 × 24 cells, 32 px grid). F6 opens the stage alone; F5 starts Time Attack directly. The shared physics verification scene is `scenes/game.tscn` with the Natsuki player (A/D or arrows, Z for detach/contact kick-off, R for restart). Open `scenes/map_preview.tscn` with F6 for arrows to pan, 1–6 to select a section and Tab for overview.
+- The first editable map is `natsuki2027/scenes/stages/theater_stage.tscn` (160 × 24 cells, 32 px grid). F6 opens the stage alone; F5 opens the title screen. The shared physics verification scene is `scenes/game.tscn` with the Natsuki player (A/D or arrows, Z for detach/contact kick-off, R for restart). Open `scenes/map_preview.tscn` with F6 for arrows to pan, 1–6 to select a section and Tab for overview.
 - Ordinary map layers have collision disabled (except native one-way `OneWayPlatforms`); `TheaterStage/Terrain` owns merged rectangular static shapes on physics layer 1. When editing terrain tiles, update matching shapes and outline nodes together. `tools/build_theater_stage.gd` regenerates the scene/TileSet and overwrites manual edits; run only intentionally.
 - Local Godot executable: `/Applications/Godot_mono.app/Contents/MacOS/Godot` (4.5.1). For sandboxed headless runs, use `--log-file /tmp/<task>.log` to avoid a crash writing default user logs. Run the saved-map collision check with `--headless --path natsuki2027 --log-file /tmp/map-check.log --script res://tools/verify_theater_stage.gd`.
 
@@ -473,7 +473,7 @@
 
 - MapEdit表示形状はPlacementStyle.shapeで種別ごとに保存（四角/丸/三角形、既定四角）。Canvas.placementPathを塗り・縁取り・preview/minimap/移動床で共有し、他のstyle編集でもshapeを保持する。ゲーム交換/衝突には影響しない。
 
-- Time Attack is the sole runtime ruleset: Game always times/saves results; no mode flag/catalog/Stage Mode courses. F5 opens game_time_attack.tscn; pause and replay return to title.tscn. game.tscn/theater_stage are shared physics/editor fixtures, not a selectable mode. Base-scene props are fixtures; replacing stage_scene discards them.
+- Time Attack is the sole runtime ruleset: Game always times/saves results; no mode flag/catalog/Stage Mode courses. F5 opens title.tscn; START opens game_time_attack.tscn; pause and replay return to title.tscn. game.tscn/theater_stage are shared physics/editor fixtures, not a selectable mode. Base-scene props are fixtures; replacing stage_scene discards them.
 
 - 1UP artwork proposal lives in specs/one-up-item-art.md: 32px transparent white summer hat/navy band/pale-yellow ribbon plus readable 1UP text. Transparent trial source: images/items/one_up_hat_trial_source.png. Final32px images/items/one_up_hat.png and identical runtime copy are integrated with lives.
 
@@ -487,7 +487,7 @@
 
 - 1UP帽子のゲーム内表示はSprite2Dのみscale(2,2)、32px原画を64px表示。Foodsセル中心と取得/ガム判定半径36pxは維持する。
 
-- Replay owns BackgroundMusic.start on valid playback entry and stop on exit; restart begins music anew, pause/end menu uses the existing tree pause behavior. Game retains independent death-reload continuity. verify_replay.gd covers entry/restart/title entry/exit music lifecycle.
+- Dormant replay implementation owns BackgroundMusic.start on valid playback entry and stop on exit; restart begins music anew, pause/end menu uses the existing tree pause behavior. Game retains independent death-reload continuity. verify_replay.gd covers entry/restart/title entry/exit music lifecycle.
 
 - LIFE × 0 warning is owned by Game._update_lives: bound looping Tween alternates opaque white/red every0.35s (0.7s cycle); tree pause freezes it, 1UP restoring reserves kills tween and resets white. verify_lives.gd covers blink/recovery.
 
@@ -507,3 +507,19 @@
 
 
 - Game death_voice stores SoundEffects.play(dead) returned AudioStreamPlayer and processes during pause. Game-over waits its actual finished signal (already ended/no voice => immediate); timeout has no death SE or fixed delay. verify_lives awaits real audio completion.
+
+- Controller InputMap is standard any-device Joypad, not DS4-specific: buttons0/2/6 map to jump/gum/pause (Xbox A/X/Menu). Windows controller hardware remains unverified; results UI is intentionally mouse-only, so gameplay pad support does not imply full pad-only navigation.
+
+- Title screen uses images/title/title_background.png and identical assets/title copy (original reference preserved). title.tscn owns exactly START/RELAY再生 Buttons; title.gd scales artwork+menu on1672×941 canvas. F5 opens title; START clears checkpoint metadata. Replay is currently always disabled by ReplayStore.ENABLED=false. Background uses linear filtering independently of gameplay nearest filtering. See specs/title-screen.md.
+
+- Character-free title compositing plate: `images/title/title_background_no_character.png` (1672×941); removes right character/hand, lower-left portrait and shadow. Intended for later overlay of 菜月さん3.png; current runtime background remains separate.
+
+- Separated title art: `images/title/layers/title_{background,effects,logo}.png`; yellow background → transparent beam/swooshes → transparent logo incl. orbit/stars. Align top-left at native size (background/effects1672×941, logo1671×941); runtime integration is separate.
+
+- When replay is enabled, startup replay loading must stay off the main thread: a real40MB compressed replay blocked title rendering before scene ready. ReplayStore Thread decodes/validates, main _process adopts and emits availability_changed; title/pause update via node-bound methods (global-signal lambdas can outlive freed buttons). Store ALWAYS processing needs explicit paused guard for physics recording. Steam editor is Godot4.7.2 at ~/Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app; /Applications/Godot_mono remains4.5.1.
+
+- Replay size audit: a real8200-frame record was41.7MB ZSTD/294.1MB serialized; music-note yaw/shine triggered472011 whole-node snapshots (~75% of raw bytes). Removing only note snapshots in a /tmp experiment cut compressed size to13.9MB. _collect includes off-camera visible nodes; capture diffs whole node dictionaries, not fields. Prioritize property deltas/procedural decoration; see specs/replay-size-analysis.md.
+
+- Input-only replay experiment (no runtime change): 13 replay comparisons on macOS at60Hz, render30/60/144 and4.5.1→4.7.2 matched observed player/rigid/gum/score/lives, including8200tick death/return run. Eight-action float32 tape262412bytes/ZSTD6168bytes for repetitive136.7s input. RNG particles and idle-time note yaw differ; no Windows/full-course guarantee. See specs/input-only-replay-verification.md; temporary harness in/tmp/input-replay-audit.
+
+- Replay is disabled by ReplayStore.ENABLED=false: no startup loader or recording callbacks; begin/capture/finish/load are no-ops, available/play reject even saved data. Keep title RELAY再生 and pause replay gray/disabled; preserve existing files. Direct replay scene returns to title. verify_replay.gd runs disabled-mode lifecycle/no-write checks; no input-only recording is active.

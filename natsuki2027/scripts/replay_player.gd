@@ -168,4 +168,4 @@ func _restart() -> void:
 
 func _back() -> void:
 	pause_menu.close()
-	get_tree().change_scene_to_file(ReplayStore.return_scene)
+	get_tree().call_deferred("change_scene_to_file", ReplayStore.return_scene)

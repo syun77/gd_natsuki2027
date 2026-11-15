@@ -1,5 +1,6 @@
 extends Node
 ## Visual fixed-step recording: playback never runs gameplay or physics.
+const ENABLED := false
 const SAVE_PATH := "user://latest_replay.dat"
 const FORMAT_VERSION := 4
 var save_path := SAVE_PATH
@@ -13,25 +14,63 @@ var return_scene := "res://scenes/title.tscn"
 var recording_scene := ""
 var failure := ""
 
+signal availability_changed
+var _loader: Thread
+
 func _ready() -> void:
+	if not ENABLED:
+		set_process(false)
+		set_physics_process(false)
+		return
 	process_physics_priority = 100
-	load_latest()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_loader = Thread.new()
+	var error := _loader.start(_read_latest.bind(save_path))
+	if error != OK:
+		_loader = null
+		push_warning("Cannot start replay loader: %s" % error_string(error))
+
+func _process(_delta: float) -> void:
+	if _loader == null or _loader.is_alive():
+		return
+	var loaded: Dictionary = _loader.wait_to_finish()
+	_loader = null
+	# A completed run recorded during loading owns the newer replay.
+	if latest.is_empty():
+		latest = loaded
+	availability_changed.emit()
+
+func _exit_tree() -> void:
+	_join_loader()
+
+func _join_loader() -> void:
+	if _loader != null:
+		_loader.wait_to_finish()
+		_loader = null
 
 func load_latest() -> void:
-	latest = {}
-	if not FileAccess.file_exists(save_path):
+	if not ENABLED:
 		return
-	var file := FileAccess.open_compressed(save_path, FileAccess.READ, FileAccess.COMPRESSION_ZSTD)
+	_join_loader()
+	latest = _read_latest(save_path)
+	availability_changed.emit()
+
+func _read_latest(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open_compressed(path, FileAccess.READ, FileAccess.COMPRESSION_ZSTD)
 	if file == null:
 		push_warning("Cannot open replay: %s" % error_string(FileAccess.get_open_error()))
-		return
+		return {}
 	var data = file.get_var(false)
 	if valid_recording(data):
-		latest = data
-	else:
-		push_warning("Replay is invalid or uses an unsupported format")
+		return data
+	push_warning("Replay is invalid or uses an unsupported format")
+	return {}
 
 func begin(host: Node2D) -> void:
+	if not ENABLED:
+		return
 	if not continuing or recording_scene != host.scene_file_path:
 		frames = []
 		previous = {}
@@ -45,7 +84,7 @@ func begin(host: Node2D) -> void:
 	capture()
 
 func _physics_process(_delta: float) -> void:
-	if is_instance_valid(game) and not game.restarting:
+	if not get_tree().paused and is_instance_valid(game) and not game.restarting:
 		capture()
 
 func suspend(keep_run: bool) -> void:
@@ -62,6 +101,8 @@ func _on_sound(cue: StringName) -> void:
 		sounds.append(cue)
 
 func capture() -> void:
+	if not ENABLED:
+		return
 	if not is_instance_valid(game):
 		return
 	var visuals: Dictionary = {}
@@ -84,6 +125,8 @@ func capture() -> void:
 	previous = visuals
 
 func finish() -> void:
+	if not ENABLED:
+		return
 	capture()
 	game = null
 	continuing = false
@@ -106,6 +149,7 @@ func finish() -> void:
 		_save_failed(error)
 		return
 	latest = data
+	availability_changed.emit()
 	frames = []
 	previous = {}
 
@@ -114,7 +158,7 @@ func _save_failed(error: Error) -> void:
 	push_warning("Cannot save replay: %s" % error_string(error))
 
 func available() -> bool:
-	return not latest.is_empty()
+	return ENABLED and not latest.is_empty()
 
 func play(back_to: String) -> void:
 	if not available():
