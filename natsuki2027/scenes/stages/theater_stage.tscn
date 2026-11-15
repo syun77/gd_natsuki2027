@@ -4,7 +4,7 @@
 [ext_resource type="TileSet" uid="uid://cx8raxqtl52fj" path="res://assets/tilesets/theater_tileset.tres" id="1_jd0rl"]
 [ext_resource type="TileSet" uid="uid://j7li7vq0p8es" path="res://assets/tilesets/background_decor_tileset.tres" id="2_2yoco"]
 [ext_resource type="PackedScene" path="res://scenes/props/checkpoint.tscn" id="checkpoint"]
-[ext_resource type="TileSet" uid="uid://bdsbmytxvc077" path="res://assets/foods/food_tileset.tres" id="foods"]
+[ext_resource type="TileSet" uid="uid://bdsbmytxvc077" path="res://assets/items/one_up_tileset.tres" id="foods"]
 [ext_resource type="PackedScene" path="res://scenes/props/ladder.tscn" id="ladder"]
 [ext_resource type="TileSet" uid="uid://cn544jrpjobls" path="res://assets/hazards/spike_tileset.tres" id="spikes"]
 [ext_resource type="TileSet" path="res://assets/items/music_note_tileset.tres" id="music_notes"]

@@ -24,11 +24,11 @@
 
 - 菜月さん references live in `images/菜月さん/` (菜月さん1.png, 菜月さん3.png, タイトル画面.png); appearance authority is `specs/natsuki-character-design.md`: blue ponytail, large pale-yellow hair ribbon, brown eyes, white sleeveless flared dress with waist bow and white shoes. Head-top rings are highlights, never a defining ornament. The entrance source now uses a white wide-brim summer hat with dark navy ribbon; lightly holding the brim with one hand is the basic pose. Entrance/exit and idle wear this hat; idle relaxes both arms; climbing uses both hands on rungs. Front waist bow and rear sash follow the approved source pair; see the specification. Other animation designs remain to be replaced.
 
-- Food collectible art lives in `images/foods/`; `milano_doria.png`, `escargot_oven_baked.png`, `chicken_diavola.png`, `shrimp_salad.png`, `spicy_chicken.png`, `margherita_pizza.png`, `tarako_pasta.png`, `hamburger_steak.png`, `sauteed_spinach.png`, `peperoncino.png`, and `italian_pudding.png` are 64 × 64 transparent RGBA static sprites. Use nearest-neighbor filtering; see `specs/food-item-assets.md`.
+- Archived food art lives in images/foods/ as production references only. Runtime collectibles are 1UP hats; see specs/one-up-item-assets.md.
 
 - Current setting/art direction is a pop-colored family restaurant: cream ceramic, coral/mint trim, painted frames and muted teal background. `theater_*` filenames remain the current resource identifiers. Edit both atlas copies together (`images/tilesets/` and `natsuki2027/assets/tilesets/`); `restaurant_tileset_source.png` is the color-edit source.
 
-- The first editable map is `natsuki2027/scenes/stages/theater_stage.tscn` (160 × 24 cells, 32 px grid). F6 opens the stage alone; F5 starts Time Attack directly (temporary debug startup). In Stage Mode, the restaurant card starts `scenes/game.tscn` with the Natsuki player (A/D or arrows, Z for detach/contact kick-off, R for restart). Open `scenes/map_preview.tscn` with F6 for arrows to pan, 1–6 to select a section and Tab for overview.
+- The first editable map is `natsuki2027/scenes/stages/theater_stage.tscn` (160 × 24 cells, 32 px grid). F6 opens the stage alone; F5 starts Time Attack directly. The shared physics verification scene is `scenes/game.tscn` with the Natsuki player (A/D or arrows, Z for detach/contact kick-off, R for restart). Open `scenes/map_preview.tscn` with F6 for arrows to pan, 1–6 to select a section and Tab for overview.
 - Ordinary map layers have collision disabled (except native one-way `OneWayPlatforms`); `TheaterStage/Terrain` owns merged rectangular static shapes on physics layer 1. When editing terrain tiles, update matching shapes and outline nodes together. `tools/build_theater_stage.gd` regenerates the scene/TileSet and overwrites manual edits; run only intentionally.
 - Local Godot executable: `/Applications/Godot_mono.app/Contents/MacOS/Godot` (4.5.1). For sandboxed headless runs, use `--log-file /tmp/<task>.log` to avoid a crash writing default user logs. Run the saved-map collision check with `--headless --path natsuki2027 --log-file /tmp/map-check.log --script res://tools/verify_theater_stage.gd`.
 
@@ -201,7 +201,7 @@
 
 - Speed afterimages: Player calls player_afterimages.gd after animation/deformation, using actual fixed-step world displacement speed (default100px/s). Frozen nearest-filtered Sprite2D snapshots fade1s, interval0.1s, max8; shared Player Afterimages settings. Child lifecycle clears on restart; run tools/verify_player_afterimages.gd.
 
-- Food collectibles use scene tiles in dedicated `assets/foods/food_tileset.tres` on stage `Foods` TileMapLayer;11 scenes under `scenes/items/foods/`,64px centered display on32px cells/36px pickup and gum-hit radius. Player group `player` plus physics bit2 owns contact pickup; Food Area bit32 is gum-ray target, no terrain collision. Default36 placements (six per section/all11 dishes) live in stage_layout.gd FOODS; keep saved Foods cells and generator aligned. Generator overwrites manual edits. See specs/food-item-assets.md and tools/verify_food_collectibles.gd.
+- 1UP scene tiles use assets/items/one_up_tileset.tres on Foods. All11 alternative IDs instantiate scenes/items/one_up.tscn;32px image/36px pickup radius. stage_layout.gd ONE_UPS owns36 fixture placements. Keep Foods IDs/cells for MapEdit; never regenerate manually edited maps.
 
 - Top-level afterimage sprites use absolute Z one below the source artwork's accumulated CanvasItem Z; show_behind_parent alone does not establish their order behind Player.
 
@@ -209,9 +209,9 @@
 
 - Hit shockwave uses gum_hit_shockwave.gd and shaders/gum_hit_shockwave.gdshader via adhesion_started; frozen world center, max4 local screen-refraction quads at Z4, no physics effects. Shared Gum Hit Shockwave settings; restart clears. See specs/gum-hit-shockwave.md and tools/verify_gum_hit_shockwave.gd.
 
-- Food gum hits enter REELING: Game locks Player across arrival/completion ticks, resets all velocities and skips movement/gravity; Gum moves food to visual hand at Food Collection/food_reel_speed600. Z/X ignored while pulling; success grants one consumed world-up Z jump (no autojump/stacking); target loss grants none. Normal terrain/rigid spring unchanged. Gum ray mask53 includes areas; terrain-only wrapping fixtures clear Foods. See specs/food-gum-reel.md and tools/verify_food_reel.gd.
+- 1UP gum hits enter REELING: Game locks Player across arrival/completion ticks, resets all velocities and skips movement/gravity; Gum moves the item to visual hand at 1UP Collection/one_up_reel_speed600. Z/X ignored while pulling; success grants one consumed world-up Z jump (no autojump/stacking); target loss grants none. Normal terrain/rigid spring unchanged. Gum ray mask53 includes areas; terrain-only wrapping fixtures clear Foods. See specs/one-up-gum-reel.md and tools/verify_one_up_reel.gd.
 
-- Food collection PixelFX burst: `images/effects/food-collect.mjs` wraps collect-burst (2× speed, restaurant palette); matching food_collect.png runtime copy,112×108 cells/5×5/22frames/30fps. food_collectible.collect spawns stage-owned world-frozen food_collect_effect.gd at collection center for0.7s (both contact/reel, once); no effect on initial gum hit. See specs/food-collect-effect.md and tools/verify_food_collect_effect.gd.
+- 1UP collection PixelFX burst: `images/effects/one-up-collect.mjs` wraps collect-burst (2× speed, restaurant palette); matching one_up_collect.png runtime copy,112×108 cells/5×5/22frames/30fps. one_up_collectible.collect spawns stage-owned world-frozen one_up_collect_effect.gd at collection center for0.7s (both contact/reel, once); no effect on initial gum hit. See specs/one-up-collect-effect.md and tools/verify_one_up_collect_effect.gd.
 
 - One-way drop: grounded Down+fresh Z (pad Down+Cross) suppresses kick and temporarily clears player mask bit8; restores after feet descend58px or0.5s. Minimum descent60px/s, horizontal momentum retained, coyote consumed; solid floors retain normal kicks. See specs/one-way-platforms.md; verify_one_way.gd covers drop/restoration/solid floor.
 
@@ -219,18 +219,18 @@
 
 - Textureless Polygon2D ignores its UV array in Godot4.5; shockwave radial coordinates must use vertex position/quad_radius varying. Run verify_gum_hit_shockwave_render.gd without --headless for GPU pixel regression; before/after captures live in /tmp.
 
-- Jump buffering: Player Movement/jump_buffer_time defaults0.12s (0 disables), floor-only pending input executes on first supported physics tick; success/drop/reset/reel clears. Special gum/food/wall/ceiling actions require fresh presses. Run tools/verify_jump_buffer.gd with player/controls/one-way/food-reel suites.
+- Jump buffering: Player Movement/jump_buffer_time defaults0.12s (0 disables), floor-only pending input executes on first supported physics tick; success/drop/reset/reel clears. Special gum/1UP/wall/ceiling actions require fresh presses. Run tools/verify_jump_buffer.gd with player/controls/one-way/one-up-reel suites.
 
 - Ladder source artwork: `images/restaurant_ladder.png`,1024×1536 transparent RGBA, front-facing mint rails/cream rungs/coral fittings; runtime copy under `assets/props/`, used by the ladder scene.
 
 - Climbable ladder: `scenes/props/ladder.tscn`, feet-origin bottom/height128, Up/Down grip/climb120px/s, neutral hold, sideways/Z/active gum release. Shared Player collision pipeline; bit8 ignored only while gripping, restored on release/reset/deletion. `stage_layout.LADDERS` owns saved optional first-shelf placement(464,640). See specs/ladders.md and tools/verify_ladder.gd.
 
-- Spike artwork: `images/tilesets/restaurant_spikes.png` is32×32 transparent RGBA (three upward spikes/coral base), nearest filtering; matching `_source.png` is generated original. Runtime copy/scene TileSet live under assets/hazards; paint source0/scene0 on Spikes (20 authored cells), generator uses Layout.SPIKES. Non-solid Area bit64; Game sweeps Player capsule before/after simulate and shares idempotent restart() with R/fall. Run tools/verify_spikes.gd; see specs/spike-tile-assets.md.
+- Spike artwork: `images/tilesets/restaurant_spikes.png` is32×32 transparent RGBA (omnidirectional steel/ivory spikes/coral hub; no safe-looking flat base), nearest filtering; matching `_source.png` is generated original. Runtime copy/scene TileSet live under assets/hazards; paint source0/scene0 on Spikes (20 authored cells), generator uses Layout.SPIKES. Non-solid Area bit64; Game sweeps Player capsule before/after simulate and shares idempotent restart() with R/fall. Run tools/verify_spikes.gd; see specs/spike-tile-assets.md.
 
 
 - Ladder climb animation: `images/normalized/natsuki_climb.png` and matching runtime copy,512×256/two256px cells,4px pixel clusters/baseline232. Back-facing alternating left-hand/right-foot then right-hand/left-foot; climb_animations.tres6fps, neutral pauses and no facing flip. Generated sheet source is images/natsuki_climb_sheet_source.png.
 
-- Checkpoints: reusable feet-origin scenes/props/checkpoint.tscn under TheaterStage/Checkpoints; stage_layout.gd CHECKPOINTS owns5 placements. Player-only non-solid trigger;8-frame4x2 sign (restaurant_checkpoint_flip_source.png), inactive muted-coral flag → active mint check, stops on check without rebound; Sprite2D scale0.13 preserves approx58px size. Pit/spike deaths call Game.restart(true), restoring last touched node via consumed scene-scoped SceneTree metadata; manual R/menu Retry restart clears it. Reload resets world/food/gum/velocity. See specs/checkpoints.md; run tools/verify_checkpoints.gd with spikes/controls/map suites.
+- Checkpoints: reusable feet-origin scenes/props/checkpoint.tscn under TheaterStage/Checkpoints; stage_layout.gd CHECKPOINTS owns5 placements. Player-only non-solid trigger;8-frame4x2 sign (restaurant_checkpoint_flip_source.png), inactive muted-coral flag → active mint check, stops on check without rebound; Sprite2D scale0.13 preserves approx58px size. Pit/spike deaths call Game.restart(true), restoring last touched node via consumed scene-scoped SceneTree metadata; manual R/menu Retry restart clears it. Reload resets world/1UP/gum/velocity. See specs/checkpoints.md; run tools/verify_checkpoints.gd with spikes/controls/map suites.
 
 - Spike disappearance uses PixelFX source `images/effects/player-disappear.mjs`,128px cells/5×4/19frames/30fps/0.6s; matching runtime PNG. Game freezes/hides player and gum, clears afterimages, plays once at swept contact center, then checkpoint restart; R/fall stay immediate. See specs/player-disappear-effect.md and verify_spikes.gd.
 
@@ -244,23 +244,23 @@
 
 - Hanging Pose Diagnostics logs SELECTED/30-tick SAMPLE/EXIT with signed pose angle, angle_source(shot/support), upper_sector, frame/nominal/error/mirror and pose eligibility fields. Schema defaultOFF, saved shared Resource currentlyON for angle investigation; this log measures selection, not artwork arm geometry. verify_hanging_poses.gd sweeps17304 quarter-degree cases across mirrored directions/flight+attachment/speeds0,150,500/distances2,400; nearest-angle ties tolerate0.0001deg.
 
-- Gum visual origin is a bounded player-local hand offset (Gum Appearance/gum_hand_follow_speed360px/s), updated once after deformation in normal and food-lock simulation; gum_visual_target returns raw pose sample. Renderer getters never advance tracking; player world translation follows immediately. Physics chest origin unchanged. verify_gum_hand_origin.gd covers pose/mirror/deformation/timestep/lock behavior.
+- Gum visual origin is a bounded player-local hand offset (Gum Appearance/gum_hand_follow_speed360px/s), updated once after deformation in normal and one-up-lock simulation; gum_visual_target returns raw pose sample. Renderer getters never advance tracking; player world translation follows immediately. Physics chest origin unchanged. verify_gum_hand_origin.gd covers pose/mirror/deformation/timestep/lock behavior.
 
-- Gameplay SFX: root sounds/*.wav originals (non-2 variants) copied to assets/sounds; SoundEffects autoload owns up to24 overlapping non-positional one-shots and survives scene reload. Cue timing/spec: specs/sound-effects.md; verify_sound_effects.gd. Pull plays on first contraction step/relaxed restart (including food reel), checkpoint only first activation, manual restart silent.
+- Gameplay SFX: root sounds/*.wav originals (non-2 variants) copied to assets/sounds; SoundEffects autoload owns up to24 overlapping non-positional one-shots and survives scene reload. Cue timing/spec: specs/sound-effects.md; verify_sound_effects.gd. Pull plays on first contraction step/relaxed restart (including 1UP reel), checkpoint only first activation, manual restart silent.
 
 - `pixelfx/` is an independent nested upstream clone, untracked by the game repository and locally hidden via `.git/info/exclude` (not a submodule). `images/effects/*.mjs` import its core for asset authoring; preserve the checkout when adjusting Git visibility.
 
-- Double jump: one fresh airborne Z/Cross impulse, refreshed on floor or successful non-food gum adhesion; existing contact/coyote/gum-release/food/ladder jumps take priority without consuming it. Initial/contact/special jumps use kick_speed, spinning air jump uses Player Double Jump/double_jump_kick_speed (default300); vertical speed assignment for air jumps, gum-style downward cancellation for gum release; sprite-only rotation persists until landing/ladder/reset/non-food gum adhesion. Motion reset/reeling clears spin without restoring air allowance. See specs/player-controller.md and tools/verify_double_jump.gd; exhausted-air fixtures isolate landing-buffer/rejection tests.
+- Double jump: one fresh airborne Z/Cross impulse, refreshed on floor or successful non-1UP gum adhesion; existing contact/coyote/gum-release/1UP/ladder jumps take priority without consuming it. Initial/contact/special jumps use kick_speed, spinning air jump uses Player Double Jump/double_jump_kick_speed (default300); vertical speed assignment for air jumps, gum-style downward cancellation for gum release; sprite-only rotation persists until landing/ladder/reset/non-1UP gum adhesion. Motion reset/reeling clears spin without restoring air allowance. See specs/player-controller.md and tools/verify_double_jump.gd; exhausted-air fixtures isolate landing-buffer/rejection tests.
 
-- Rotation-jump tuck source: images/natsuki_double_jump.png,1254×1254 transparent RGBA single right-facing knees-hugged pose. Runtime copy assets/characters/natsuki_double_jump.png is byte-identical; player.tscn double_jump uses AtlasTexture region(328,145,606,935), sprite-only0.175 source scale on top of normal0.3125. Outbound spin prioritizes tuck; non-food adhesion stops spin and restores ordinary gum poses; mirrored/rotated visual hand uses crop-relative(143,194). See specs/character-sprite-audit.md.
+- Rotation-jump tuck source: images/natsuki_double_jump.png,1254×1254 transparent RGBA single right-facing knees-hugged pose. Runtime copy assets/characters/natsuki_double_jump.png is byte-identical; player.tscn double_jump uses AtlasTexture region(328,145,606,935), sprite-only0.175 source scale on top of normal0.3125. Outbound spin prioritizes tuck; non-1UP adhesion stops spin and restores ordinary gum poses; mirrored/rotated visual hand uses crop-relative(143,194). See specs/character-sprite-audit.md.
 
 - Double-jump visual speed is shared Player Double Jump/double_jump_rotation_speed in rev/s (default3.0;0 freezes current angle); read live per step, physics/pose unchanged. verify_double_jump.gd checks custom/live/zero speed and momentum invariants.
 
 - Double-jump spin follows current sprite.flip_h after pose selection: right clockwise/left counterclockwise, midair reversal retains angle, neutral retains facing. fposmod wraps signed rotation; settings speed is magnitude. verify_double_jump.gd exercises real left/right/neutral input with custom/zero speeds and fixed collision/momentum.
 
-- Gum._attach_hit notifies Player.on_gum_attached only for non-food terrain/rigid/ring hits: one-shot air-jump refill and immediate rotation/pose/scale reset with unchanged velocities. Food retains reset_motion/reel reward rules. verify_double_jump_gum.gd covers actual Game flight→adhesion→release→air jump, held-attachment no-refill and food exclusion.
+- Gum._attach_hit notifies Player.on_gum_attached only for non-1UP terrain/rigid/ring hits: one-shot air-jump refill and immediate rotation/pose/scale reset with unchanged velocities. 1UP retains reset_motion/reel reward rules. verify_double_jump_gum.gd covers actual Game flight→adhesion→release→air jump, held-attachment no-refill and 1UP exclusion.
 
-- Kick tuning is independent: Player Movement/kick_speed controls initial/contact/coyote/gum-release/food/ladder jumps; Player Double Jump/double_jump_kick_speed controls spinning air jumps only. Current saved values400/300; preserve user tuning. verify_double_jump.gd uses distinct310/470 fixtures and verifies gum-release priority.
+- Kick tuning is independent: Player Movement/kick_speed controls initial/contact/coyote/gum-release/1UP/ladder jumps; Player Double Jump/double_jump_kick_speed controls spinning air jumps only. Current saved values400/300; preserve user tuning. verify_double_jump.gd uses distinct310/470 fixtures and verifies gum-release priority.
 
 - Double-jump launch directly assigns external_velocity.y = -double_jump_kick_speed, replacing upward/downward momentum and current-tick gravity while preserving X; gravity resumes next tick. Other jump types retain existing compensation. verify_double_jump.gd covers72 combinations of gravity/timestep/vertical+horizontal speed.
 
@@ -271,14 +271,13 @@
 - Checkpoint PixelFX: images/effects/checkpoint-{idle,activate}.mjs → tools/build_checkpoint_effects.mjs exports idle/active60-frame96×96 loops and activation25-frame128×96 burst to source/runtime. checkpoint_effect.gd owns art-only child sprites;0.4s stars/0.8s end, no replay on repeated contact or respawn. Both idle variants alternate50px rising side trails and up to10px top stars (1s side offset/2s cycle), cream/coral inactive and mint/cream active; activation uses2px arcs/up to9px stars with subtle local glow. See specs/checkpoints.md; verify_checkpoints.gd covers lifecycle.
 - Local PixelFX Painter expects numeric colors (`hex()` or `fit()`), not raw hex strings; `px(x,y,c)` ignores extra alpha arguments. Use a zero-length `line` for a fading pixel and epsilon-safe end-time checks for transparent final frames.
 
-- Food availability sparkles: PixelFX source images/effects/food-idle.mjs, regenerate with tools/build_food_idle_effect.mjs;96px cells/60frames/30fps/2s. food_collectible owns food_idle_effect child with position-based phase; being_pulled setter immediately hides/restores it, collection hides before success burst. See specs/food-idle-effect.md; verify_food_collect_effect.gd covers lifecycle.
+- 1UP availability sparkles: PixelFX source images/effects/one-up-idle.mjs, regenerate with tools/build_one_up_idle_effect.mjs;96px cells/60frames/30fps/2s. one_up_collectible owns one_up_idle_effect child with position-based phase; being_pulled setter immediately hides/restores it, collection hides before success burst. See specs/one-up-idle-effect.md; verify_one_up_collect_effect.gd covers lifecycle.
 
 
 - Hanging-only waypoint pulley: scenes/props/pulley_trolley.tscn + scripts/pulley_trolley.gd; Game at(944,384), F5 only. Bind existing Gum.adhesion_started: each fresh hit requests one segment, moving hits ignored/no queue, arrival waits, detach does not stop motor. Export local2D route_points(default80/184/288 on X), LOOP or PING_PONG(default), speed140/force18000. Force servo + per-segment native GrooveJoint2D retain real reciprocal gum physics; no tween/velocity overwrite. Carriage bit16/mask0, only pad(0,42) collides with gum; player/props pass through. Single-wheel PNG/atlas, generated dark route rails. See specs/pulley-trolley.md; verify_pulley_trolley.gd.
 
 - Gameplay HUD has no persistent control-help text; keep control documentation in specs/keyboard-controls.md. HUD/Status remains for runtime gum state.
 
-- F5 starts `scenes/game_time_attack.tscn` directly as a temporary debug default. Time Attack returns to mode selection only via the pause menu; its clear result offers retry only. Stage Mode opens `scenes/stage_select.tscn`, whose Back button and ui_cancel return to mode selection. Time Attack opens `scenes/game_time_attack.tscn`; stage_catalog.gd lists3 playable courses. Stage1 is original restaurant; inherited game_stage_2/3 scenes export stage_scene + stage_width2048. Rebuild only new maps via tools/build_provisional_stages.gd; original map/TileSet untouched. Game OPTIONS/Esc opens a pause menu with retry/selection/cancel; new entry clears checkpoint, R preserves selected scene, Exit player contact opens door, darkens/hides actor and closes before clear result. See specs/stage-selection.md and tools/verify_stage_select.gd.
 
 - Stage-start entrance source artwork: `images/tilesets/restaurant_stage_entrance_source.png` (transparent cream/mint doorway with coral canopy and arrow sign). This original is retained; the ENTRANCE animation variant supplies the normalized runtime sprite, separate from the terrain TileSet.
 
@@ -286,7 +285,7 @@
 
 - Current entrance animation sign variant: `images/tilesets/restaurant_stage_entrance_animation_entrance.png`; all six signs read ENTRANCE without arrows. Original arrow sheet retained as source; normalized runtime sheet and lifecycle are documented in specs/stage-entrance-art.md.
 
-- Stage entrance: Game advances stage_entrance.gd for1.10s on fresh/manual restart; checkpoint restore skips. Frozen player/reset_motion, hidden gum, no queued jump/shot.96×128 cells/3×2 sheet built by tools/build_stage_entrance_art.py; source/runtime copies identical. Same-Z ordering puts entrance after stage/before Player. Floor ray aligns feet. Run verify_stage_entrance.gd plus stage_select/controls suites.
+- Stage entrance: Game advances stage_entrance.gd for1.10s on fresh/manual restart; checkpoint restore skips. Frozen player/reset_motion, hidden gum, no queued jump/shot.96×128 cells/3×2 sheet built by tools/build_stage_entrance_art.py; source/runtime copies identical. Same-Z ordering puts entrance after stage/before Player. Floor ray aligns feet. Run verify_stage_entrance.gd plus time_attack/controls suites.
 
 - Pause menu is scripts/pause_menu.gd (CanvasLayer PROCESS_MODE_ALWAYS), pauses whole SceneTree; OPTIONS has its own pause_menu action, R remains restart. Esc also toggles; no on-screen HUD menu button. Retry/selection close/unpause before scene transition; close consumes next Game tick to avoid UI Cross becoming jump. _exit_tree releases owned pause. verify_pause_menu.gd covers actual pad events and frozen physics/entrance.
 
@@ -296,7 +295,7 @@
 
 - EXIT opening patterns: `images/tilesets/restaurant_stage_exit_animation_source.png`, six states in3×2 reading order, closed→fully open; reverse closes. Runtime normalization/integration uses restaurant_stage_exit.png; see specs/stage-exit-art.md.
 
-- Exit sequence: Game creates stage_exit.gd at floor-aligned Exit marker; non-solid40×64 Area(bit2/player) triggers once.0.4s opening→0.5s RGB-to-black→hide player/zero masks→0.4s closing→clear. Fixed-step lock, detach/hidden gum, no actor teleport. build_stage_exit_art.py regenerates identical96×128-cell3×2 sheets. Run verify_stage_exit.gd and stage_select/entrance/pause/map suites.
+- Exit sequence: Game creates stage_exit.gd at floor-aligned Exit marker; non-solid40×64 Area(bit2/player) triggers once.0.4s opening→0.5s RGB-to-black→hide player/zero masks→0.4s closing→clear. Fixed-step lock, detach/hidden gum, no actor teleport. build_stage_exit_art.py regenerates identical96×128-cell3×2 sheets. Run verify_stage_exit.gd and time_attack/entrance/pause/map suites.
 
 - Clear result uses a full-viewport CenterContainer under HUD; do not combine centered anchors with a second viewport-center position offset (that displaced the result outside the viewport).
 
@@ -310,16 +309,16 @@
 
 - Music note:32px transparent source in `images/items/`, identical runtime copy `assets/items/music_note.png`; `scenes/items/music_note.tscn` uses shaders/music_note.gdshader for3s local highlight plus4s±32deg yaw; compensated face width>=94%, ~2px extruded sides, no root/sprite scaling or sensor deformation. Both clocks have positional phases/pause support. Player-only18px contact pickup: hide/item sound/one-shot collected() then free; no score/gum reeling. F6 `scenes/music_note_preview.tscn`; run tools/verify_music_note.gd. See specs/music-note-item-assets.md.
 
-- MusicNotes is an editable scene-tile layer in all3stages (restaurant70/terrace25/kitchen22); TileSet `assets/items/music_note_tileset.tres`, authored cells `scripts/music_note_layout.gd`. Keep saved cells/arrays aligned; restaurant generator shares helper. Player-only contact pickup; stage reload restores notes, no score. verify_music_note_placement.gd checks actual scene instances and terrain/platform/spike/food clearance.
+- MusicNotes is an editable scene-tile layer in retained Time Attack and restaurant verification maps; TileSet `assets/items/music_note_tileset.tres`, authored cells `scripts/music_note_layout.gd`. Keep saved cells/arrays aligned; restaurant generator shares helper. Player-only contact pickup; stage reload restores notes, shared score awards10 points. verify_music_note_placement.gd checks actual scene instances and terrain/platform/spike/1UP clearance.
 
 - Current verify_stage_route.gd fails at first upward shot with saved/default attachment_range160 (fixture documents240/222px chest-to-beam). Reproduced with MusicNotes removed; do not treat this as a note placement regression or silently raise user tuning.
 
-- music_note.gd resolves SoundEffects via `/root/SoundEffects` at pickup: early TileSet scene preloads in headless fixtures can compile before autoload identifiers register. verify_music_note_pickup.gd covers physical contacts across3stages, filtering, gum exclusion, pause/reload and duplicate requests.
+- music_note.gd resolves SoundEffects via `/root/SoundEffects` at pickup: early TileSet scene preloads in headless fixtures can compile before autoload identifiers register. verify_music_note_pickup.gd covers physical contacts on retained maps, filtering, gum exclusion, pause/reload and duplicate requests.
 
 - Small score-item artwork is a yellow five-point star at `images/items/star.png`, a standalone32×32 transparent RGBA sprite; runtime is assets/items/star.png. Use nearest-neighbor filtering.
 - Stars are30-point contact pickups under each saved stage's `Baguettes` node (3 per stage); keep placements aligned with `scripts/baguette_layout.gd`. Game owns the stage score/HUD and scene reload resets score and pickups. Music notes and baguettes share `contact_pickup.gd`; only baguettes award points. Keep the source and runtime star PNG copies identical.
 
-- Time Attack uses one dedicated 192×24 stage, `scenes/stages/time_attack.tscn`. `tools/build_time_attack_stage.gd` overwrites the saved map with its initial layout. After manual edits, sync Terrain rectangles to the saved TerrainTiles occupancy without rerunning the builder. Game counts active physics time immediately after the entrance animation, freezes it on goal contact, and saves one local best in `user://time_attack_sprint.cfg`. See `specs/time-attack-courses.md`.
+- Time Attack uses one dedicated 692×24 stage, `scenes/stages/time_attack.tscn`. `tools/build_time_attack_stage.gd` overwrites the saved map with its initial layout. After manual edits, sync Terrain rectangles to the saved TerrainTiles occupancy without rerunning the builder. Game counts active physics time immediately after the entrance animation, freezes it on goal contact, and saves one local best in `user://time_attack_sprint.cfg`. See `specs/time-attack-courses.md`.
 
 - Time Attack's TerrainTiles material fills transparent pixels inside each painted 32px atlas cell. Keep terrain visuals on TileMapLayer and merged StaticBody2D shapes aligned for gum wrapping.
 
@@ -349,7 +348,7 @@
 
 - MapEdit placement display overrides use the BungeeGumMapEdit UserDefaults suite, keyed by placement ID. Canvas, minimap and palette share these styles; exchange IDs remain unchanged.
 
-- Time Attack has an initially empty Foods TileMapLayer using the same food_tileset.tres as Theater. MapEdit exports Japanese dish labels from scene resource basenames and keeps the scene-tile IDs. Reimport older sessions to get the new layer.
+- Foods is the current MapEdit exchange layer key for 1UP. All11 scene tile IDs and existing placements are preserved; labels display1UP and tile resource is assets/items/one_up_tileset.tres.
 
 - Replace the right palette scroll view’s entire document grid on refresh. Reusing a layer-backed NSGridView by removing rows left stale button drawings over new labels.
 
@@ -361,7 +360,7 @@
 
 - MapEdit can paint instant-death spikes in Theater and Time Attack via Spikes and the shared spike_tileset.tres. Time Attack starts with an empty layer; Game owns both overlap and swept death detection.
 
-- Checkpoint death reload carries Game.collected_items (original parent path + placed local position) and score via RESPAWN_META; food reeling never changes identity. Food/contact pickups register recursively after TileMapLayer.update_internals. Manual retry/new entry resets items; Time Attack death at entrance also preserves them. verify_stage_select.gd covers all three pickup types and repeated death.
+- Checkpoint death reload carries Game.collected_items (original parent path + placed local position) and score via RESPAWN_META; 1UP reeling never changes identity. 1UP/contact pickups register recursively after TileMapLayer.update_internals. Manual retry/new entry resets items; Time Attack death at entrance also preserves them. verify_time_attack.gd covers all three pickup types and repeated death.
 
 - Air counter-steering in Player.simulate clears external_velocity.x when move axis opposes it, after Gum.step force and before movement. Only when gum is disconnected; attached swings preserve X even with held opposite input. Detach-jump enables braking in the same tick. Neutral/same-direction and Y momentum remain, grounded uses friction. verify_player.gd covers mirrored free-flight braking, held-force cancellation, real attached momentum and detach-jump transition.
 
@@ -371,7 +370,7 @@
 
 - Overlapping-ring shots: _step_outbound root visibility excludes only the tip-hit anchor cell RID via _cast_segment optional excluded_rid. hit_from_inside otherwise detects the same ring twice and rejects as BLOCKED PATH. Keep player exclusion and all other blockers; verify_gum_anchors covers center/±20px offsets × five shot directions and next-tick retention.
 
-- Pickup scores: ContactPickup.points defaults30 for baguettes, MusicNote._init sets points10, FoodCollectible.POINTS=300. Popup and Game score use these same values. Food collected(food_id) credits both contact and gum-reel completion through shared registration; score/deleted placements persist on death. verify_stage_select checks exact per-item deltas and duplicate collect safety.
+- Pickup rewards: stars30, notes10, 1UP adds one life with no score. score_popup.spawn_text displays1UP; placement identity/lives/score persist on death. verify_lives/verify_time_attack cover exact rewards and duplicate safety.
 
 - Score popup font/size/fill/outline/width are owned solely by resources/score_popup_theme.tres (Theme default font/size and Label colors/constants); score_popup.gd has no local style overrides. Edit this resource independently of debug_theme.tres.
 
@@ -395,7 +394,7 @@
 
 - Free falling speed uses Player Movement/max_fall_speed (default600px/s); player.gd caps downward velocity after jump resolution, before contact solving. Any connected gum (taut/slack) bypasses; detach resumes immediately. Horizontal/upward momentum stays unchanged. verify_player.gd covers default/custom cap and detach; coyote compensation fixture raises cap to isolate compensation.
 
-- Notes/stars share ContactPickup score_item cue (sounds/item3.wav and identical runtime copy); food retains item.wav via item cue.
+- Notes/stars share ContactPickup score_item cue (sounds/item3.wav and identical runtime copy); 1UP retains item.wav via item cue.
 
 - MapEdit one-way floor category uses OneWayPlatforms on both supported stages; preserve the empty collision-enabled layer in Time Attack and its generator. Source1 atlas x0/1/2/3 means left/middle/right/single. Old imported sessions need a fresh Godot copy to expose newly added layers.
 
@@ -407,7 +406,7 @@
 
 - Replay camera uses current shared Camera Normal Zoom each applied frame via replay.tscn exported settings Resource; saved camera center is retained. Recorded zoom is unused; changing settings affects existing replays without re-recording. verify_replay covers post-recording/shared and per-frame zoom changes.
 
-- Standalone `scenes/test.tscn` displays static Natsuki with11 upright food sprites orbiting via `scripts/food_orbit_demo.gd`; F6 previews, root Inspector controls radius/speed (230px/30deg per second). No gameplay logic; see specs/test-scene.md.
+- Standalone scenes/test.tscn displays Natsuki with11 upright1UP hats orbiting via scripts/one_up_orbit_demo.gd; F6 previews, no gameplay logic.
 
 - Confirmed game_settings baseline: double jump300px/s/3rev/s; afterimages100px/s, interval0.1s, lifetime1s, RGBA(1,0.72156864,0.8509804,0.23529412); shockwave80px/0.6s/5px/0.18; camera normal zoom1.5. Script defaults match saved Resource tuning.
 
@@ -457,7 +456,7 @@
 
 - 移動床専用9-slice画像はimages/tilesets/restaurant_moving_platform.pngと同一runtimeコピー（64×10RGBA）。余白L/R8、T/B2px、nearest、幅32px以上・高さ10px固定で中央横伸長。原画と32/96/192pxプレビューを併置。仕様はspecs/moving-platforms.md。
 
-- MapEdit交換形式はversion2。movingPlatforms配列とsourceへ個別id/始点/移動設定を保持し、三者merge・Undo/Redo対象。移動床のsleep剛体運搬には上面近くのwakeが必要（Godot4.5.1）；constant_linear_velocityの追加は二重速度になるため使わない。リプレイ描画形式はversion3でnine_patchとsegmentsを記録する。
+- MapEdit交換形式はversion2。movingPlatforms配列とsourceへ個別id/始点/移動設定を保持し、三者merge・Undo/Redo対象。移動床のsleep剛体運搬には上面近くのwakeが必要（Godot4.5.1）；constant_linear_velocityの追加は二重速度になるため使わない。リプレイ描画形式はversion4でnine_patchとsegmentsを記録する。
 
 - 移動床の自動carry/floor snapはis_on_floor=trueでもslide contacts空になる。Playerは直前の移動床を保持し、エンジン支持中だけUP法線で重力整理・摩擦を処理して、歩き離脱でも床速度をexternalへ一度引継ぐ。verify_moving_platformの左右walk-off回帰を保持。
 
@@ -466,3 +465,21 @@
 - 移動床のコリジョンは表示幅より左右各4px広い（COLLISION_OVERHANG、幅3マス=画像96/判定104px）。厚5px・上面高・中央は維持。wake帯も同じ幅、Player床抜けはMovingPlatform.support_rect()を使う。既定scene形状とverify_moving_platformの実端/幅検査を同期する。コヨーテはユーザー実走で移動床でも有効と確認済み。
 
 - 移動床ガイドはMovingPlatformRoutes（moving_platform_routes.gd、line_segments.gd）のstage固定バッチ。床中央y5、4px描画/4px間隔、2px幅、8px端stop。背景群の後/TerrainTiles前に同一Z0で置く（背景はZ0なのでZ-1不可）。共有Moving Platform Route設定ON/灰緑alpha0.55。配置/幅/方向/距離変更だけ再構築、物理移動では更新しない。OFFはalpha0でリプレイ兄弟順を保持。Gameのstage差替は元tree indexを維持し、Playerより前に描かない。specs/moving-platform-route-guide.mdとverify_moving_platform_routes.gd参照。
+
+- MapEdit moving-platform overlap uses the starting artwork cell footprint (same row and width), shared by Swift validation and Godot exchange/merge validation. Overlapping placement selects the existing floor; drag/resize rejects overlaps. Route crossings and adjacent footprints remain allowed. Selection redraws both views and adds a yellow outline. Offscreen regression: compile MapDocument.swift + Canvas.swift + tests/main.swift with xcrun swiftc, then run the executable.
+
+- Godot Dictionary equality distinguishes nested int/float values even when scalar equality succeeds. JSON numbers parse as float: canonicalize all moving-platform fields in StageExchange.index_platforms before diff/three-way merge. Exchange regression must JSON roundtrip additions/edits/deletions/resends; scene-only fixtures miss false conflicts.
+
+- Moving-platform carry applies only while supported: Player must not add motor motion_velocity to external_velocity on departure. Jump, walk-off/coyote and drop-through do not inherit motor speed; retain independent gum/rigid/player momentum. verify_moving_platform.gd covers all four motor directions at32/160px/s.
+
+- MapEdit表示形状はPlacementStyle.shapeで種別ごとに保存（四角/丸/三角形、既定四角）。Canvas.placementPathを塗り・縁取り・preview/minimap/移動床で共有し、他のstyle編集でもshapeを保持する。ゲーム交換/衝突には影響しない。
+
+- Time Attack is the sole runtime ruleset: Game always times/saves results; no mode flag/catalog/Stage Mode courses. F5 opens game_time_attack.tscn; pause and replay return to title.tscn. game.tscn/theater_stage are shared physics/editor fixtures, not a selectable mode. Base-scene props are fixtures; replacing stage_scene discards them.
+
+- 1UP artwork proposal lives in specs/one-up-item-art.md: 32px transparent white summer hat/navy band/pale-yellow ribbon plus readable 1UP text. Transparent trial source: images/items/one_up_hat_trial_source.png. Final32px images/items/one_up_hat.png and identical runtime copy are integrated with lives.
+
+- Time Attack camera right limit comes from game_time_attack.tscn stage_width (22144px = 692×32). Keep it aligned with stage/MapEdit width when resizing; verify_camera.gd checks actual scrolling beyond the former6144px limit and right-edge clamping.
+
+- Residual lives: Game owns total lives_remaining=3, HUD reserves2. _begin_death consumes once;0 reserves death means GAME OVER. restart(true) preserves lives/collected identities; manual retry resets. Game-over pauses physics, permits R/retry/title, excludes debug/pickups and never saves an unfinished best/replay. Run verify_lives.gd.
+
+- Death hat visual sample: `images/samples/natsuki_death_hat/preview.gif` (13.44s loop, quarter-speed descent; sway period 1.25s), transparent `hat_source.png`, reproducible Pillow `render_sample.py`; see `specs/death-hat-animation-sample.md`. Preview only, no runtime death integration; navy ribbon belongs to hat, yellow ribbon belongs to hair.

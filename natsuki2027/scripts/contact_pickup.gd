@@ -7,6 +7,7 @@ const ScorePopup = preload("res://scripts/score_popup.gd")
 signal collected
 
 var is_collected := false
+var collection_allowed: Callable
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -16,6 +17,8 @@ func _on_body_entered(body: Node2D) -> void:
 		collect()
 
 func collect() -> void:
+	if collection_allowed.is_valid() and not collection_allowed.call():
+		return
 	if is_collected:
 		return
 	is_collected = true

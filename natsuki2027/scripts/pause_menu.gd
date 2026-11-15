@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## Pause the world while keeping menu input and focus navigation alive.
 signal retry_requested
-signal selection_requested
+signal back_requested
 signal resumed
 signal checkpoint_selected(path: NodePath)
 var is_open := false
@@ -49,14 +49,14 @@ func _ready() -> void:
 	main_column = VBoxContainer.new()
 	main_column.add_theme_constant_override("separation", 18)
 	column.add_child(main_column)
-	for text in ["リトライ", "ステージ選択に戻る", "キャンセル"]:
+	for text in ["リトライ", "タイトルに戻る", "キャンセル"]:
 		var button := Button.new()
 		button.text = text
 		button.custom_minimum_size.y = 64
 		main_column.add_child(button)
 		buttons.append(button)
 	buttons[0].pressed.connect(func(): retry_requested.emit())
-	buttons[1].pressed.connect(func(): selection_requested.emit())
+	buttons[1].pressed.connect(func(): back_requested.emit())
 	buttons[2].pressed.connect(close)
 	_set_focus_neighbors(buttons)
 	_setup_checkpoint_panel(column)

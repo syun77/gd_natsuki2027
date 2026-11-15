@@ -1,0 +1,4 @@
+Create a single isolated game sprite of ONLY the white wide-brim summer hat worn by the character in the reference. Reference is design authority: white rounded woven crown, gently wavy broad white brim, dark navy band and navy bow on right with two ribbon tails. No person, no hair, no hands, no yellow bow, no lettering, no shadow or glow outside the object. Transparent background. Pixel art with crisp dark contours and restrained white/lavender shading matching reference. Show side/front three-quarter view with nearly horizontal brim, floating freely, entire hat centered with generous transparent margins. Single hat only, not a sheet. This will be animated as a windblown falling death hat in a side-view game.
+
+Reference: images/natsuki_front_entrance_source.png
+Tool: built-in imagegen; transparent_background=true.

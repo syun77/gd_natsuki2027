@@ -5,6 +5,5 @@
 
 [node name="Game" instance=ExtResource("1")]
 stage_scene = ExtResource("2")
-stage_width = 6144
+stage_width = 22144
 fall_restart_offset = 64.0
-time_attack = true

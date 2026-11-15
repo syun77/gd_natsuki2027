@@ -8,7 +8,7 @@ func check(condition: bool, message: String) -> void:
 		failures += 1
 		push_error(message)
 func verify() -> void:
-	for entry in [["theater_stage", Layout.RESTAURANT], ["stage_2", Layout.TERRACE], ["stage_3", Layout.KITCHEN]]:
+	for entry in [["theater_stage", Layout.RESTAURANT]]:
 		var stage = load("res://scenes/stages/%s.tscn" % entry[0]).instantiate()
 		root.add_child(stage)
 		await process_frame
@@ -31,12 +31,12 @@ func verify() -> void:
 			var hits := notes.get_world_2d().direct_space_state.intersect_shape(query)
 			check(hits.is_empty(), "%s note %s intersects terrain/platform/hazard" % [entry[0], cell])
 			var foods: TileMapLayer = stage.get_node("Foods")
-			for food_cell in foods.get_used_cells():
-				var distance := point.distance_to(foods.to_global(foods.map_to_local(food_cell)))
-				check(distance >= 48.0, "%s note %s overlaps food %s" % [entry[0], cell, food_cell])
+			for one_up_cell in foods.get_used_cells():
+				var distance := point.distance_to(foods.to_global(foods.map_to_local(one_up_cell)))
+				check(distance >= 48.0, "%s note %s overlaps item %s" % [entry[0], cell, one_up_cell])
 		print(entry[0], ": ", notes.get_child_count(), " notes checked")
 		stage.free()
 		await physics_frame
 	if failures == 0:
-		print("PASS: all saved route-note cells/instances, terrain/hazard and food clearance")
+		print("PASS: all saved route-note cells/instances, terrain/hazard and item clearance")
 	quit(1 if failures else 0)

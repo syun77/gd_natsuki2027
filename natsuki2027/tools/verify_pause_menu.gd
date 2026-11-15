@@ -82,6 +82,6 @@ func verify() -> void:
 	game.pause_menu.open()
 	game.pause_menu.buttons[1].pressed.emit()
 	await frames()
-	check(not paused and current_scene.scene_file_path == "res://scenes/stage_select.tscn", "Selection action exits and unpauses")
+	check(not paused and current_scene.scene_file_path == "res://scenes/title.tscn", "Selection action exits and unpauses")
 	print("Pause menu: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

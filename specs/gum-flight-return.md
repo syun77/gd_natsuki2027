@@ -1,6 +1,6 @@
 # バンジーガムの飛行・回収仕様
 
-食べ物への命中は専用の引き寄せ状態REELINGへ移行する。引き寄せ中は速度・重力・移動とZ/Xを停止し、手元回収後はZで一度だけ空中ジャンプできる。詳細は [food-gum-reel.md](food-gum-reel.md)。
+1UPへの命中は専用の引き寄せ状態REELINGへ移行する。引き寄せ中は速度・重力・移動とZ/Xを停止し、手元回収後はZで一度だけ空中ジャンプできる。詳細は [one-up-gum-reel.md](one-up-gum-reel.md)。
 
 実装済みの飛行・回収の基準仕様。入力は [keyboard-controls.md](keyboard-controls.md)、接着後の物理規則は [gum-wrapping.md](gum-wrapping.md) に従う。
 

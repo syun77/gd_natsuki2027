@@ -9,11 +9,11 @@ const DIRECTIONS := {"up": Vector2.UP, "down": Vector2.DOWN, "left": Vector2.LEF
 	set(value):
 		direction = value
 		if is_node_ready(): route_changed.emit()
-@export_range(1, 192, 1) var travel_cells := 4:
+@export_range(1, 692, 1) var travel_cells := 4:
 	set(value):
 		travel_cells = value
 		if is_node_ready(): route_changed.emit()
-@export_range(1, 192, 1) var width_cells := 3:
+@export_range(1, 692, 1) var width_cells := 3:
 	set(value):
 		width_cells = value
 		if is_node_ready():

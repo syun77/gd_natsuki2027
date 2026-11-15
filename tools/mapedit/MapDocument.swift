@@ -47,6 +47,10 @@ struct MovingPlatform: Codable, Equatable {
     func contains(_ point: GridPoint) -> Bool {
         point.y == y && (x..<(x + width_cells)).contains(point.x)
     }
+    func overlaps(_ other: MovingPlatform) -> Bool {
+        y == other.y && x < other.x + other.width_cells && other.x < x + width_cells
+    }
+
     func validate(width: Int, height: Int) throws {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
         guard !id.isEmpty, id.utf8.count <= 64, id.unicodeScalars.allSatisfy({ allowed.contains($0) && $0.isASCII }),
@@ -148,9 +152,15 @@ struct MapDocument: Codable {
         (0..<width).contains(point.x) && (0..<height).contains(point.y)
     }
 
+    func overlappingPlatform(with candidate: MovingPlatform, excludingID: String? = nil) -> MovingPlatform? {
+        movingPlatforms.lazy.filter { $0.id != excludingID && $0.overlaps(candidate) }.min {
+            (abs($0.x - candidate.x), $0.x, $0.id) < (abs($1.x - candidate.x), $1.x, $1.id)
+        }
+    }
+
     func validate() throws {
         let widths = ["res://scenes/stages/theater_stage.tscn": 160,
-                      "res://scenes/stages/time_attack.tscn": 192]
+                      "res://scenes/stages/time_attack.tscn": 692]
         guard version == 2, widths[stage] == width, height == 24, tileSize == 32,
               base.count == 64, base.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),
               layers["TerrainTiles"] != nil,
@@ -164,12 +174,15 @@ struct MapDocument: Codable {
             }) else { throw MapError("タイルパレットが不正です: \(name)") }
         }
         var ids: Set<String> = []
-        var starts: Set<GridPoint> = []
         for platform in movingPlatforms {
             try platform.validate(width: width, height: height)
-            guard ids.insert(platform.id).inserted,
-                  starts.insert(GridPoint(x: platform.x, y: platform.y)).inserted else {
-                throw MapError("移動床のIDまたは始点が重複しています。")
+            guard ids.insert(platform.id).inserted else {
+                throw MapError("移動床のIDが重複しています。")
+            }
+        }
+        for platform in movingPlatforms {
+            if overlappingPlatform(with: platform, excludingID: platform.id) != nil {
+                throw MapError("移動床の配置範囲が重なっています（セル \(platform.x), \(platform.y)）。")
             }
         }
         var occupied: [String: Set<GridPoint>] = [:]

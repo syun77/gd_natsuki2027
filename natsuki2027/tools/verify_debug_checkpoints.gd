@@ -92,12 +92,11 @@ func verify() -> void:
 		check(not game.entrance.active and game.player.position.distance_to(target) < 8, "reload starts at selected checkpoint, skips entrance")
 		check(game.player.external_velocity.length() < 100 and not game.gum.connected(), "reload removes old velocity and gum")
 		check(game.score >= 30 and game.collected_items.has("test_item"), "debug reload preserves collected state")
-		if game.time_attack:
-			check(game.elapsed >= 12.5 and game.elapsed < 12.7 and game.timer_label.text.begins_with("DEBUG "), "debug time retained and labelled")
-			var best: float = game.best_time
-			game.elapsed = 0.001
-			game._finish_time_attack()
-			check(game.best_time == best and game.timer_label.text.begins_with("DEBUG "), "debug clear never updates best")
+		check(game.elapsed >= 12.5 and game.elapsed < 12.7 and game.timer_label.text.begins_with("DEBUG "), "debug time retained and labelled")
+		var best: float = game.best_time
+		game.elapsed = 0.001
+		game._finish_time_attack()
+		check(game.best_time == best and game.timer_label.text.begins_with("DEBUG "), "debug clear never updates best")
 		# Death must retain exclusion; manual retry must start a clean normal run.
 		game.restart(true)
 		await frames()

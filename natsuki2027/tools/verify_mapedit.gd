@@ -20,7 +20,7 @@ func verify() -> void:
 		assert((stage.get_node("GumPassBarriers") as TileMapLayer).collision_enabled)
 		assert((stage.get_node("OneWayPlatforms") as TileMapLayer).collision_enabled)
 		assert(before.layers.Foods.palette.size() == 11)
-		assert(before.layers.Foods.labels.has("ミラノ風ドリア"))
+		assert(before.layers.Foods.labels.has("1UP"))
 		assert(not before.layers.Foods.labels.has(""))
 		assert(before.layers.Baguettes.labels == ["フランスパン"])
 		assert(before.layers.MusicNotes.labels == ["音符"])
@@ -47,9 +47,9 @@ func verify() -> void:
 		invalid.stage = "res://other.tscn"
 		assert(Exchange.validate(stage, before, invalid).contains("match"))
 		data.cells.remove_at(0)
-		var food_cell := Vector2i(5, 5)
+		var one_up_cell := Vector2i(5, 5)
 		var foods := stage.get_node("Foods") as TileMapLayer
-		assert(foods.get_cell_source_id(food_cell) == -1)
+		assert(foods.get_cell_source_id(one_up_cell) == -1)
 		data.cells.append({"kind": "Foods", "x": 5, "y": 5, "tile": [0, 0, 0, 5]})
 		for kind in ["Baguettes", "MusicNotes", "GumBoxes", "Spikes"]:
 			data.cells.append({"kind": kind, "x": 5, "y": 5, "tile": [0, 0, 0, 0]})
@@ -114,10 +114,10 @@ func verify() -> void:
 		var decor_data := decor.tile_map_data if decor else PackedByteArray()
 		Exchange.commit(history, stage, changes)
 		assert(Exchange.snapshot(stage).cells.size() == data.cells.size())
-		assert(foods.get_cell_alternative_tile(food_cell) == 5)
+		assert(foods.get_cell_alternative_tile(one_up_cell) == 5)
 		for kind in ["Baguettes", "MusicNotes", "GumBoxes", "Spikes"]:
-			assert(stage.get_node(kind).get_cell_source_id(food_cell) == 0)
-		assert(stage.get_node("GumPassBarriers").get_cell_source_id(food_cell) == 3)
+			assert(stage.get_node(kind).get_cell_source_id(one_up_cell) == 0)
+		assert(stage.get_node("GumPassBarriers").get_cell_source_id(one_up_cell) == 3)
 		assert(Exchange.snapshot(stage).markers == data.markers)
 		assert(checkpoints.get_child_count() == old_checkpoints.size() + 1)
 		for name in new_names:
@@ -128,9 +128,9 @@ func verify() -> void:
 		assert(packed.pack(stage) == OK)
 		var copy := packed.instantiate()
 		assert(copy.has_node("Checkpoints/" + new_names[1]))
-		assert(copy.get_node("GumPassBarriers").get_cell_source_id(food_cell) == 3)
+		assert(copy.get_node("GumPassBarriers").get_cell_source_id(one_up_cell) == 3)
 		var boxes := copy.get_node("GumBoxes") as TileMapLayer
-		assert(boxes.get_cell_source_id(food_cell) == 0)
+		assert(boxes.get_cell_source_id(one_up_cell) == 0)
 		var box_source := boxes.tile_set.get_source(0) as TileSetScenesCollectionSource
 		var box := box_source.get_scene_tile_scene(0).instantiate() as RigidBody2D
 		assert(box.collision_layer == 4 and is_equal_approx(box.mass, 0.4))
@@ -159,12 +159,12 @@ func verify() -> void:
 		assert(stage.get_children() == old_children)
 		assert(checkpoints.get_children() == old_checkpoints)
 		assert(scene_history.redo())
-		assert(stage.get_node("GumPassBarriers").get_cell_source_id(food_cell) == 3)
+		assert(stage.get_node("GumPassBarriers").get_cell_source_id(one_up_cell) == 3)
 		assert(Exchange.snapshot(stage).markers == data.markers)
 		assert(Exchange.snapshot(stage).cells.size() == data.cells.size())
-		assert(foods.get_cell_alternative_tile(food_cell) == 5)
+		assert(foods.get_cell_alternative_tile(one_up_cell) == 5)
 		for kind in ["Baguettes", "MusicNotes", "GumBoxes", "Spikes"]:
-			assert(stage.get_node(kind).get_cell_source_id(food_cell) == 0)
+			assert(stage.get_node(kind).get_cell_source_id(one_up_cell) == 0)
 		assert(scene_history.undo())
 		print("MAPEDIT PASS ", path)
 	plugin.free()

@@ -3,7 +3,7 @@ extends RefCounted
 
 const LAYERS := ["TerrainTiles", "OneWayPlatforms", "GumAnchors", "GumPassBarriers", "Spikes", "GumBoxes", "Foods", "Baguettes", "MusicNotes"]
 const WIDTHS := {
-	"res://scenes/stages/time_attack.tscn": 192,
+	"res://scenes/stages/time_attack.tscn": 692,
 	"res://scenes/stages/theater_stage.tscn": 160,
 }
 const ATLAS_PALETTES := {
@@ -15,20 +15,10 @@ const ATLAS_PALETTES := {
 }
 const ITEM_NAMES := {
 	"spikes": "即死トゲ",
+	"one_up": "1UP",
 	"gum_box": "軽いブロック",
 	"baguette": "フランスパン",
 	"music_note": "音符",
-	"chicken_diavola": "若鶏のディアボラ風",
-	"escargot_oven_baked": "エスカルゴのオーブン焼き",
-	"hamburger_steak": "ハンバーグ・ステーキ",
-	"italian_pudding": "イタリアンプリン",
-	"margherita_pizza": "バッファローモッツァレラのマルゲリータピザ",
-	"milano_doria": "ミラノ風ドリア",
-	"peperoncino": "ペペロンチーノ",
-	"sauteed_spinach": "ほうれん草のソテー",
-	"shrimp_salad": "小エビのサラダ",
-	"spicy_chicken": "辛味チキン",
-	"tarako_pasta": "たらこソースシシリー風",
 }
 const PLATFORM_SCENE := preload("res://scenes/props/moving_platform.tscn")
 const MovingPlatform = preload("res://scripts/moving_platform.gd")
@@ -401,14 +391,19 @@ static func add_scene_child(history: EditorUndoRedoManager, parent: Node, child:
 static func index_platforms(platforms: Array) -> Dictionary:
 	var result := {}
 	for platform: Dictionary in platforms:
-		result[platform.id] = platform
+		result[platform.id] = {
+			"id": str(platform.id), "x": int(platform.x), "y": int(platform.y),
+			"direction": str(platform.direction), "travel_cells": int(platform.travel_cells),
+			"width_cells": int(platform.width_cells), "speed": float(platform.speed),
+			"endpoint_wait": float(platform.endpoint_wait),
+		}
 	return result
 
 static func validate_platforms(value: Variant, width: int) -> String:
 	if not value is Array:
 		return "移動床データがありません。Godotからステージをコピーし直してください。"
 	var ids := {}
-	var starts := {}
+	var footprints: Array[Rect2i] = []
 	for item in value:
 		if not item is Dictionary:
 			return "移動床の形式が不正です。"
@@ -432,9 +427,11 @@ static func validate_platforms(value: Variant, width: int) -> String:
 		for point: Vector2 in [a, b]:
 			if point.x < 0 or point.y < 0 or point.x + item.width_cells > width or point.y >= HEIGHT:
 				return "移動床の始点または終点がマップ範囲外です。"
-		if starts.has(a):
-			return "移動床の始点が重複しています。"
-		starts[a] = true
+		var footprint := Rect2i(int(item.x), int(item.y), int(item.width_cells), 1)
+		for other in footprints:
+			if footprint.intersects(other):
+				return "移動床の配置範囲が重なっています（セル %d, %d）。" % [item.x, item.y]
+		footprints.append(footprint)
 	return ""
 
 static func valid_platform_id(id: String) -> bool:

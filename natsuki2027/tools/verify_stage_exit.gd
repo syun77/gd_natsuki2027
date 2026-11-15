@@ -12,7 +12,7 @@ func ticks(count := 3) -> void:
 		await process_frame
 func verify() -> void:
 	root.get_node("ReplayStore").save_path = "/tmp/bungee-verify_stage_exit-replay.dat"
-	for path in ["res://scenes/game.tscn", "res://scenes/game_stage_2.tscn", "res://scenes/game_stage_3.tscn"]:
+	for path in ["res://scenes/game.tscn"]:
 		var game = load(path).instantiate()
 		root.add_child(game)
 		game.set_physics_process(false)
@@ -72,10 +72,11 @@ func verify() -> void:
 		game.free()
 		await process_frame
 	# Real Game ticks and SceneTree pause must freeze an active exit timeline.
-	var game = load("res://scenes/game_stage_2.tscn").instantiate()
+	var game = load("res://scenes/game.tscn").instantiate()
 	root.add_child(game)
 	game._physics_process(game.entrance.TOTAL_TIME)
-	game.player.global_position = game.exit_door.global_position + Vector2(-25, -8)
+	game.exit_door.global_position = Vector2(240, 640)
+	game.player.global_position = game.exit_door.global_position + Vector2(-25, -24)
 	await ticks()
 	check(game.exit_door.active, "Live Game contact begins exit")
 	check(game.exit_door.settling and game.player.sprite.animation == &"jump", "Airborne contact waits in air pose")
@@ -95,12 +96,13 @@ func verify() -> void:
 	game.free()
 	await process_frame
 	# An upward-moving entry retains its vertical arc, with no horizontal motion until landing.
-	var airborne_game = load("res://scenes/game_stage_2.tscn").instantiate()
+	var airborne_game = load("res://scenes/game.tscn").instantiate()
 	root.add_child(airborne_game)
 	airborne_game.set_physics_process(false)
 	airborne_game._physics_process(airborne_game.entrance.TOTAL_TIME)
 	var airborne_player = airborne_game.player
 	var airborne_door = airborne_game.exit_door
+	airborne_door.global_position = Vector2(240, 640)
 	airborne_player.global_position = airborne_door.global_position + Vector2(-25, -40)
 	airborne_player.velocity = Vector2(200, -160)
 	airborne_game._begin_exit()

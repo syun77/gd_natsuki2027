@@ -82,10 +82,10 @@ func verify() -> void:
 	Input.action_press("aim_up")
 	await step(player)
 	assert(is_instance_valid(player.ladder))
-	player.food_reel_locked = true
+	player.one_up_reel_locked = true
 	await step(player)
-	assert(not is_instance_valid(player.ladder) and player.get_collision_mask_value(4), "Food lock restores mask")
-	player.food_reel_locked = false
+	assert(not is_instance_valid(player.ladder) and player.get_collision_mask_value(4), "OneUp lock restores mask")
+	player.one_up_reel_locked = false
 	Input.action_release("aim_up")
 	await step(player)
 	Input.action_press("aim_up")

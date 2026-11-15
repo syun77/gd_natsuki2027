@@ -46,7 +46,7 @@
 
 ## リプレイ
 
-描画記録形式はversion3。`segments` として線分の点ペア・幅・色・変換・Zを収録する。プレイヤーや床の物理を実行せず、同じバッチ描画で再生する。空の線分やalpha0も記録し、表示状態と兄弟順を保持する。
+描画記録形式はversion4。`segments` として線分の点ペア・幅・色・変換・Zを収録する。プレイヤーや床の物理を実行せず、同じバッチ描画で再生する。空の線分やalpha0も記録し、表示状態と兄弟順を保持する。
 
 読み込み時は点ペア数、有限の座標・幅・色、正の線幅を検証する。通常プレイと同じく地形・床・プレイヤー・ガムより背後に表示する。
 
@@ -58,6 +58,6 @@
 - 床が動いても経路が固定され、設定変更・床削除では更新されることを確認する。
 - ON/OFF・色変更、バッチ数、物理ノードがないこと、segments記録の整合性と不正値拒否を確認する。
 - 実Gameのステージ差し替え後のPlayer/背景/地形との描画順、ポーズ中の表示を確認する。
-- `verify_moving_platform.gd`、`verify_replay.gd`、`verify_pause_menu.gd`、`verify_stage_select.gd`、`verify_mapedit.gd` と併用する。
+- `verify_moving_platform.gd`、`verify_replay.gd`、`verify_pause_menu.gd`、`verify_time_attack.gd`、`verify_mapedit.gd` と併用する。
 
 Godot Compatibilityの実描画で、横・縦の固定点線がガラス床から透けて見えることを確認する。視認性の調整にはガイド色のalphaを使う。

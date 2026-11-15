@@ -85,3 +85,11 @@ offset_right = 204.0
 offset_bottom = 108.0
 theme = ExtResource("14")
 text = "TIME 0.00"
+
+[node name="Lives" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 112.0
+offset_right = 264.0
+offset_bottom = 156.0
+theme = ExtResource("13")
+text = "LIFE × 2"

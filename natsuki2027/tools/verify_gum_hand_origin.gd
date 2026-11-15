@@ -48,16 +48,16 @@ func verify() -> void:
 	player._update_gum_hand_origin(1.0 / 60.0)
 	check(before.distance_to(player.gum_visual_origin()) <= player.settings.gum_hand_follow_speed / 60.0 + 0.001, "Visual deformation also respects continuity")
 	check(player.get_node("CollisionShape2D").shape == capsule and player.scale == Vector2.ONE, "Collision geometry remains unchanged")
-	# Exercise the real simulation owner, including the food-lock early return.
+	# Exercise the real simulation owner, including the item-lock early return.
 	player.settings.gravity = 0.0
 	for locked in [false, true]:
-		player.food_reel_locked = locked
+		player.one_up_reel_locked = locked
 		player.sprite.play("gum_hang")
 		player._update_gum_hand_origin(1.0)
 		var local_before: Vector2 = player.gum_hand_offset
 		await physics_frame
 		player.simulate(1.0 / 60.0)
-		check(local_before.distance_to(player.gum_hand_offset) > 0.0, "Simulation advances hand origin including food lock")
+		check(local_before.distance_to(player.gum_hand_offset) > 0.0, "Simulation advances hand origin including item lock")
 		check(local_before.distance_to(player.gum_hand_offset) <= player.settings.gum_hand_follow_speed / 60.0 + 0.001, "Simulation advances hand exactly once")
 	player.free()
 	gum.free()

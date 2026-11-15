@@ -164,7 +164,7 @@ func verify() -> void:
 	replay.pause_menu.open()
 	replay.pause_menu.buttons[1].pressed.emit()
 	await wait_frames()
-	check(current_scene.scene_file_path == "res://scenes/mode_select.tscn" and not paused, "Replay back returns to mode menu")
+	check(current_scene.scene_file_path == "res://scenes/title.tscn" and not paused, "Replay back returns to title")
 	var menu_buttons := current_scene.find_children("*", "Button", true, false)
 	var replay_button: Button
 	for button in menu_buttons:

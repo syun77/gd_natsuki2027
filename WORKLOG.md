@@ -1,3 +1,109 @@
+## 1UP・残機制の実装
+
+- Goal/status: 1UP差替え/残機制の実装・最終検証完了。
+- Completed/decisions: 総残機3/予備表示2、死亡単発減算、0予備で死亡時GAME OVER。Foodsレイヤー/全11配置IDを維持し同一32px帽子へ接続。1UP文字/無得点、ガム引寄せ/報酬ジャンプ/演出を維持。取得済み/残機は死亡復帰保持、retryは初期化。ゲームオーバーは物理停止/通常メニュー無効、retry/title/R有効。
+- Files: game/player/gum/settings/contact_pickup/score_popup/one_up_*、game/1UP/保存map/試験scene、items/effects画像/TileSet、MapEdit表示/交換labels、検証、specs/AGENTS。料理原画はimages/foodsに保管、runtime料理scene/画像は削除。別作業の帽子落下試作を保持。
+- Verification: lives UI retry/title/records・TA・pickup・reel・effects・spikes・gum・double_jump_gum・deformation・controls・player・pause・replay・debug PASS/終了0。MapEdit editor交換両map PASS/終了0、Swift本体buildと描画tests PASS。double_jumpは保存色を不当に拒否する全schema等値assertを対象jump tuning検証へ整理し72case含めPASS/終了0。トゲfixtureの入口floor補正/入場待ちを現行化し既存2FAIL解消。git diff --check PASS。指定.agents文書は存在しない。
+- Refactoring: 取得signalを引数なしへ統一し登録処理共通化、未使用item_id除去、結果panel生成共通化、Food専用名/仕様/原画演出sourceをone_upへ統一。配置IDは現行契約として保持。
+- Blockers: なし。Next action: F5でLIFE表示/1UP/ゲームオーバーをプレイ確認。MapEditは再起動して新表示を使用する。最終verify_livesは実physics tickのR/retry/title/未完走記録保護を含めPASS・終了0、git diff --check PASS。画像320px nearest拡大で帽子/文字を目視、全ゲーム画面のnative目視QAは未実施。既存sandbox証明書/終了resource警告あり。
+
+## 死亡時の帽子落下アニメーション試作
+
+- Goal/status: 帽子だけが風で左右に揺れ落ちるサンプルを、指定の落下速度約1/4へ調整完了。ゲーム未組込。
+- Completed/decisions: 白いつば広帽子/濃紺リボンの生成原画を使用。浮き0.32sを維持し落下の進行時間だけ0.25倍、周期1.25s/左右42px/傾き24度を維持。全13.44sループ。
+- Files: images/samples/natsuki_death_hat/{hat_source.png,preview.gif,contact_sheet.png,render_sample.py}、specs/death-hat-animation-sample.md、specs/death-hat-image-prompt.txt、AGENTS.md、WORKLOG.md。既存差分を保持。
+- Verification/refactoring: 落下時間をdescent、速度倍率をFALL_SPEED_SCALEへ分離。render_sample.py再実行PASS（336生成コマ/25fps/640×576、GIF合計13440ms）。4時点のcontact sheetを目視、仕様/AGENTS同期、git diff --check PASS。runtime変更なし。
+- Blockers: なし。Next action: preview.gifで遅くした落下を確認し、採用時に死亡演出へ統合。
+
+## 食べ物廃止・1UPと残機の仕様検討
+
+- Goal/status: ユーザー指定の1UP/残機ルールを設計。検討完了、runtime変更なし。
+- Completed/decisions: 総数3/予備表示2、死亡1→0→GAME OVER、取得で+1/無得点/1UP文字のみを確定要件として記録。死亡時取得保持、共通死亡確定、一度だけ減算、ゲームオーバー/リトライ/記録扱いを推奨。現行Foodのガム引寄せ/硬直/取得後ジャンプ権は維持推奨として確定要件と区別。全配置同セル置換と供給過多レビューを明記。
+- Files: specs/one-up-and-lives.md、specs/one-up-item-art.md、AGENTS.md、WORKLOG.md。既存作業を保持。
+- Verification: Gameの取得/トゲ/奈落/復帰/結果/デバッグ経路、food_collectibleと関連仕様を照合。状態表と受入条件をレビュー、git diff --check。仕様のみでruntimeテスト対象なし。
+- Blockers: なし。Next action: 実装依頼時に帽子32px素材を完成し、Food全経路/MapEdit/残機/ゲームオーバーを一括更新。ガム回収とジャンプ報酬は推奨方針を確認する。
+
+## 1UP帽子画像の試作
+
+- Goal/status: 画像仕様をもとに試作を生成。完了、ゲーム未組込。
+- Completed/decisions: built-in imagegenで白い夏帽子/紺帯/黄色リボン/ミント1UP文字の透過原画を生成。帽子と文字の視認性を目視確認。32px完成素材への整形は未実施。
+- Files: images/items/one_up_hat_trial_source.png、specs/one-up-hat-trial-prompt.txt、specs/one-up-item-art.md、AGENTS.md、WORKLOG.md。
+- Verification: 原画RGBA/alpha検査、生成画像目視。画像のみでruntimeテスト対象なし。
+- Blockers: なし。Next action: 試作の見た目を確認後、採用時に32pxへ整形し背景別の視認性を検証。
+
+## カメラ範囲をマップ横幅へ同期
+
+- Goal/status: TAで途中停止するカメラをマップ右端まで追従させる。完了。
+- Completed/decisions: 実マップ692×32=22144pxに対し継承Gameのstage_widthが6144pxだった。配置用sceneの値を22144へ同期し、既存Gameのlimit_right設定を利用。
+- Files: scenes/game_time_attack.tscn、tools/verify_camera.gd、specs/time-attack-courses.md、AGENTS.md、WORKLOG.md。
+- Verification: verify_camera.gd最終PASS・終了0。既存zoom/input/追従に加え、保存背景幅との一致、x7000/右端手前/右端で実Cameraのscreen center追従とviewport端clampを確認。最終レビューで既存limit設定経路を保持し重複処理なし、git diff --check PASS。fixtureの背景は保存時の自動node名に依存せずPolygon2D/z=-10で取得。既存証明書/旧replay/終了resource警告のみ。指定.agents/ツール作成.mdは存在しない。
+- Blockers: なし。Next action: F5で旧右制限より先へ進み追従を確認。
+
+## 1UPアイテムの画像デザイン提案
+
+- Goal/status: 残機増加アイテムの画像仕様を検討。提案完了、画像・runtime未実装。
+- Completed/decisions: 星32px・料理64pxと菜月さん衣装仕様を照合。白いつば広夏帽子/紺帯/淡黄色リボン＋ミントの1UP文字、32×32透過ピクセル画を候補化。色・構図・保存先・背景別視認性を仕様化。
+- Files changed: specs/one-up-item-art.md、AGENTS.md、WORKLOG.md。既存作業差分は保持。
+- Verification: 文書のサイズ/余白/文字領域/既存素材との区別をレビュー、git diff --check実施。仕様のみのためruntimeテスト対象なし。
+- Blockers: なし。Next action: ユーザーのデザイン判断後、画像を制作し等倍/背景別で検証。残機ルールは別途設計する。
+
+## タイムアタック以外のモード削除
+
+- Goal/status: タイムアタックだけの構成へ整理。完了。
+- Completed/decisions: モード/ステージ選択・catalog・仮コース2/3・専用生成器/検証を削除。title.tscnはTA開始/リプレイのみ。Gameのmode flagと非計時/非TA結果分岐を削除、タイマー/死亡継続/記録を統一。ポーズ/リプレイからタイトルへ戻る。新規開始は残存checkpoint metaを消す。共通物理/MapEdit検証用theater/base sceneとギミックは維持。既存未コミット変更を保持。
+- Files: scripts/game/pause_menu/title/replay_store/replay_player/music_note_layout、title/game_time_attack scenes、モード専用scene/scripts/tools削除、verify_time_attackと関連検証/specs/AGENTS。
+- Verification/refactoring: Godot editor import終了0。TA（実3種pickup重複加点防止・移動後食品identity・2回死亡で取得/計時/score保持・タイトル・新規開始・結果retry）/pause/replay/debug checkpoints/music note placement/pickup/entrance/exit/moving platform routes/controls/gum全PASS・終了0。仮course固有fixtureを現行マップ/明示的空中接触fixtureへ整理。最終レビューでmode flag/schemaを全callerから排除、pauseのback_requestedへ統一しTA/pause/replay/controls/gum再実行PASS。git diff --check PASS。
+- Limitations: リプレイschemaは4（mode flagなし）へ更新、既存形式3は再生対象外。既存sandbox証明書/Mono/editor設定保存/終了resource警告あり、script/parse errorなし。指定.agents/ツール作成.mdは存在しない。画面の目視QAは未実施。
+- Blockers: なし。Next action: F5でTA開始、Esc/OPTIONS→「タイトルに戻る」から新規挑戦/リプレイを確認。
+
+## 即死トゲを全方向危険の外観へ
+
+- Goal/status: 上向き刃を上下左右・斜め8方向へ刃が出る画像へ変更。完了。
+- Decisions: built-in imagegenで既存PNGを編集、原本をnearestで32×32 RGBA化。生成alpha維持。画像依頼のため既存の物理判定は維持、既存の未コミット変更を保持。
+- Files: images/tilesets/restaurant_spikes{,_source}.png、assets/hazards同名PNG、specs/spike-tile-assets.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 原本/320px拡大を目視、32×32/RGBA/alpha0–255/runtime byte一致PASS。Godot再import終了0（既存sandbox証明書/Mono/settings警告）。verify_spikesは画像寸法・塗消去・高速縦横接触を通過したが既存の復帰位置/復帰後静止接触2件FAIL・終了1。画像のみの変更でscene/物理は未変更。仕様の古い死亡/復帰記述を現行参照へ整理。git diff --check PASS。
+- Blockers: 画像変更なし。Next action: F5またはMapEditで全方向型トゲの見た目を確認。verify_spikes復帰fixtureの現行仕様との整合は別途確認が必要。
+
+## MapEdit表示形状の選択
+
+- Goal/status: タイル設定で四角・丸・三角形を選択。完了。
+- Completed/decisions: 配置種別ごとに形状を保存。共通path生成でcanvas/preview/minimapと縁取り、移動床へ適用。初期/リセットは四角。ゲーム交換形式は変更なし。
+- Files: tools/mapedit/Canvas.swift/main.swift/tests/main.swift/README.md、specs/mapedit.md、AGENTS.md、WORKLOG.md。
+- Verification: 最終Swift本体build終了0、既存offscreen描画/選択tests PASS、3形状のCodable保存とpath領域検証PASS、git diff --check PASS。共通pathと全style更新経路を最終整理・再検証済み。指定.agents文書はrepositoryに存在せず。既存作業差分を保持。
+- Blockers: なし。Next action: MapEditを再起動し「タイル設定…」→「表示形状」で選択。
+
+## Time Attackの横幅を500セル拡張
+
+- Goal/status: 192→692×24セルへ右側の空き領域を追加。完了。
+- Decisions: 既存配置/ゴールは維持。背景22144px、Swift/Godot交換幅と移動床パラメータ上限を同期。生成器の背景も合わせ、保存sceneの再生成はしない。
+- Files: time_attack.tscn、stage_exchange.gd、MapDocument.swift、main.swift、moving_platform.gd、build_time_attack_stage.gd、specs/mapedit/time-attack-courses、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: Swift本体build/選択描画tests PASS・終了0。692幅モデルの最終セル691許可/692拒否を追加。Godot verify_mapeditとmoving_platform_exchange両stage PASS・終了0、背景22144pxと最終列の配置・範囲外拒否も確認。固定192上限を現在map幅参照へ整理、生成器の背景同期、保存mapの地形再生成なし。git diff --check PASS。
+- Next action: MapEdit再起動後、Godotからステージをコピーし直して692幅を取り込む（旧192幅のセッションは非対応）。Blockersなし。
+
+## 移動床からのジャンプ速度
+
+- Goal/status: ジャンプへ移動床速度が加算されないよう変更、完了。
+- Decision: 接地中のengine運搬を維持、離脱時の独自motion_velocity加算を削除。歩き落ちでも加算せずコヨーテへ持ち越さない。剛体/ガム由来の運動量は保持。
+- Files: player.gd、verify_moving_platform.gd、specs/moving-platforms.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: verify_moving_platform / verify_player両suite PASS・終了0。4方向×32/160px/sのジャンプ、歩き落ち、反転運搬、床抜け、剛体、コヨーテ、通常操作/コーナー支持を確認。不要になった離脱速度の取得・衝突投影・加算を削除し、支持処理と既存外部運動量を保持。最終差分レビュー/git diff --check PASS。既存証明書/旧replay/終了resource警告のみ。
+- Next action: F5で移動床からジャンプし、床方向によらず同じキックになることを確認。Blockersなし。
+
+## MapEdit転送時の移動床の誤競合
+
+- Goal/status: 同じ移動床がGodot/MapEdit双方で変更と誤判定される転送エラー。修正完了。
+- Cause/decision: Godot4.5.1でJSONの整数はfloatになり、Dictionary全体の等値比較では内部intと一致しない。比較用index_platformsで全fieldを正規化（座標/マスint、速度/待機float）。diff/三者mergeの両方へ適用し、本当の競合は従来どおり拒否。
+- Files changed: addons/mapedit/stage_exchange.gd、tools/verify_moving_platform_exchange.gd、specs/moving-platforms.md、AGENTS.md、WORKLOG.md。
+- Verification/refactoring: 小型再現でDictionary=false/scalar=true確認。JSON実往復の追加・変更・削除・再送信/無変更diffを回帰へ追加。moving platform exchangeとverify_mapeditの両suiteでTime Attack/restaurant PASS、全終了0。既存同時変更/重複拒否/Undo/保存も通過。比較正規化を既存indexへ集約、最終再実行PASS、git diff --check PASS。既存editor設定/終了resource警告のみ。
+- Blockers: なし。Next action: Godotのプロジェクトを開き直してから現在のMapEdit内容を再送信する。MapEditの再コピーは不要。
+
+## MapEdit移動床の重複配置防止と黄色選択枠
+
+- Goal/status: 配置幅の重なる移動床を追加せず既存床を選択、選択中は黄色縁取り。完了。
+- Completed/decisions: 判定は始点位置の表示セル範囲（同じ行・横幅）。新規ブラシが重なる場合は既存床を選択、移動/幅変更/JSON/送信/マージも重複を拒否。隣接と経路の交差は許可（経路干渉は警告）。選択変更でcanvas/minimapを再描画し、選択床を最後に黄色枠付きで描画。プレビューは枠対象外。
+- Files changed: tools/mapedit/MapDocument.swift/Canvas.swift/tests/main.swift/README.md、addons/mapedit/stage_exchange.gd、tools/verify_moving_platform_exchange.gd、specs/mapedit.md/moving-platforms.md、AGENTS.md、WORKLOG.md。既存のsettings/scene/pixelfx変更は保持。
+- Verification/refactoring: Swift app最終build終了0。offscreen tests PASS（部分重複/包含/隣接/別行/選択/追加拒否/幅変更拒否/削除/再描画/選択描画順/黄色canvas/minimap枠）。/tmp/mapedit-platform-selection.png目視確認。Godot exchange両stage PASS（重複拒否・隣接許可・マージ拒否を追加、既存Undo/保存再読込含む）。既存editor設定保存/終了resource警告あり、script/parse errorなし。全パラメータ検証後の重複判定へ整理し、不正整数での演算を防止。git diff --check PASS。
+- Blockers: なし。Next action: MapEditを再起動し、既存床と重なる位置をクリックして選択・黄色枠を確認する。
+
 ## 移動床の固定点線ガイド実装
 
 - Goal/status: 承認仕様の固定点線と端ストッパーをゲーム・リプレイへ実装。完了。

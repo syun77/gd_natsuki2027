@@ -137,6 +137,6 @@ move_and_slide()
 
 床離脱後は`coyote_time`（初期値0.10秒、0で無効）の間、一度だけ接地キックを受け付ける。成功したキックは猶予を消費する。詳細は[キーボード操作](keyboard-controls.md)を参照。
 
-## 起動・ステージ選択
+## 起動・タイトル
 
-F5はデバッグ用の暫定仕様として `scenes/game_time_attack.tscn` を直接起動する。メニューからモード選択へ戻り、ステージモードとステージを選ぶと `scenes/game.tscn` に遷移する。Gameの直接F6起動も可能。OPTIONS／Escで全体を一時停止し、リトライ・ステージ選択に戻る・キャンセルを選ぶ。詳細は `stage-selection.md`。
+F5は `scenes/game_time_attack.tscn` を直接起動する。メニューからタイトルへ戻り、タイムアタックを新規開始できる。Gameの直接F6起動も可能。OPTIONS／Escで全体を一時停止し、リトライ・タイトルに戻る・キャンセルを選ぶ。詳細は `time-attack-courses.md`。

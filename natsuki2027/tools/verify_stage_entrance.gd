@@ -15,7 +15,7 @@ func ticks(count: int) -> void:
 		await process_frame
 
 func verify() -> void:
-	for path in ["res://scenes/game.tscn", "res://scenes/game_stage_2.tscn", "res://scenes/game_stage_3.tscn"]:
+	for path in ["res://scenes/game.tscn", "res://scenes/game_time_attack.tscn"]:
 		var game = load(path).instantiate()
 		root.add_child(game)
 		var entrance = game.entrance
@@ -59,10 +59,10 @@ func verify() -> void:
 		game.free()
 		await process_frame
 	# A valid checkpoint restoration must remain immediately playable.
-	var path := "res://scenes/game_stage_2.tscn"
+	var path := "res://scenes/game_time_attack.tscn"
 	var game = load(path).instantiate()
 	game.scene_file_path = path
-	set_meta(&"checkpoint_respawn", {"scene": path, "checkpoint": NodePath("TheaterStage/Checkpoints/Checkpoint01")})
+	set_meta(&"checkpoint_respawn", {"scene": path, "checkpoint": NodePath("TheaterStage/Checkpoints/Checkpoint")})
 	root.add_child(game)
 	check(not game.entrance.active and game.player.sprite.visible, "Checkpoint skips entrance sequence")
 	check(not game.active_checkpoint.is_empty(), "Checkpoint restored")

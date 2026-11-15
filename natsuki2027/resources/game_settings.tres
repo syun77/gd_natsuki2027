@@ -5,15 +5,4 @@
 [resource]
 resource_name = "Game Settings"
 script = ExtResource("1")
-moving_platform_route_enabled = true
-moving_platform_route_color = Color(0.6, 0.68, 0.65, 0.55)
-double_jump_kick_speed = 300.0
-double_jump_rotation_speed = 3.0
-afterimage_minimum_speed = 100.0
-afterimage_interval = 0.1
-afterimage_lifetime = 1.0
-afterimage_color = Color(1, 0.72156864, 0.8509804, 0.23529412)
-gum_hit_shockwave_radius = 80.0
-gum_hit_shockwave_duration = 0.6
-gum_hit_shockwave_strength = 5.0
-gum_hit_shockwave_opacity = 0.18
+afterimage_color = Color(0.44705883, 0.62352943, 0.99607843, 0.627451)

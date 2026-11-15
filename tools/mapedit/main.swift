@@ -29,6 +29,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
     private let styleButton = NSButton(title: "タイル設定…", target: nil, action: nil)
     private let styleName = NSTextField(string: "")
     private let styleShortcut = NSTextField(string: "")
+    private let styleShape = NSPopUpButton(frame: .zero, pullsDown: false)
     private let styleColor = NSColorWell()
     private let styleOutlineEnabled = NSButton(checkboxWithTitle: "縁取りを有効にする", target: nil, action: nil)
     private let styleOutlineColor = NSColorWell()
@@ -231,7 +232,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
 
     private func placementName(for kind: String) -> String {
         let labels = [MapDocument.breakableKind: "破壊可能ブロック", "TerrainTiles": "地形", "OneWayPlatforms": "一方通行床", "GumPassBarriers": "バリア", MovingPlatform.kind: "移動床",
-                      "GumAnchors": "ガムアンカー", "Spikes": "即死トゲ", "GumBoxes": "可動ブロック", "Foods": "食べ物", "Baguettes": "スター", "MusicNotes": "音符", MapDocument.checkpointKind: "チェックポイント"]
+                      "GumAnchors": "ガムアンカー", "Spikes": "即死トゲ", "GumBoxes": "可動ブロック", "Foods": "1UP", "Baguettes": "スター", "MusicNotes": "音符", MapDocument.checkpointKind: "チェックポイント"]
         let name = String(kind.split(separator: "/").last ?? "")
         return canvas.placementStyle(for: kind)?.name ?? labels[kind]
             ?? (name == "PlayerSpawn" ? "スタート" : name == "Exit" ? "ゴール" : name)
@@ -250,13 +251,16 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
     }
 
     private func makeStylePanel() -> NSPanel {
-        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 390, height: 245),
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 390, height: 280),
                             styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
         panel.isReleasedWhenClosed = false
         panel.delegate = self
         styleName.delegate = self
         styleShortcut.delegate = self
         styleShortcut.placeholderString = "英数字1キー・空欄で解除"
+        styleShape.addItems(withTitles: PlacementShape.allCases.map { $0.title })
+        styleShape.target = self
+        styleShape.action = #selector(changeStyleShape)
         styleColor.target = self
         styleColor.action = #selector(changeStyleColor)
         styleColor.isContinuous = true
@@ -268,6 +272,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         let fields = NSGridView(views: [
             [NSTextField(labelWithString: "表示名"), styleName],
             [NSTextField(labelWithString: "色"), styleColor],
+            [NSTextField(labelWithString: "表示形状"), styleShape],
             [NSTextField(labelWithString: "ショートカット"), styleShortcut],
             [NSTextField(labelWithString: "縁取り"), styleOutlineEnabled],
             [NSTextField(labelWithString: "縁取りの色"), styleOutlineColor]
@@ -293,6 +298,8 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
     }
 
     private func populateStyleFields(for kind: String) {
+        let shape = canvas.placementStyle(for: kind)?.shape ?? .square
+        styleShape.selectItem(at: PlacementShape.allCases.firstIndex(of: shape) ?? 0)
         styleName.stringValue = placementName(for: kind)
         styleColor.color = canvas.placementColor(for: kind)
         styleShortcut.stringValue = canvas.placementStyle(for: kind)?.shortcut?.uppercased() ?? ""
@@ -313,7 +320,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
                 return
             }
             savePlacementStyle(PlacementStyle(name: name, color: canvas.placementColor(for: kind),
-                                              shortcut: previous?.shortcut, outlineColor: previous?.outlineColor), for: kind)
+                                              shortcut: previous?.shortcut, outlineColor: previous?.outlineColor, shape: previous?.shape), for: kind)
         } else if field === styleShortcut {
             let key = field.stringValue.lowercased()
             guard key.isEmpty || (key.utf8.count == 1 && "abcdefghijklmnopqrstuvwxyz0123456789".contains(key)) else {
@@ -325,15 +332,23 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
                 return
             }
             savePlacementStyle(PlacementStyle(name: placementName(for: kind), color: canvas.placementColor(for: kind),
-                                              shortcut: key.isEmpty ? nil : key, outlineColor: previous?.outlineColor), for: kind)
+                                              shortcut: key.isEmpty ? nil : key, outlineColor: previous?.outlineColor, shape: previous?.shape), for: kind)
         }
+    }
+
+    @objc private func changeStyleShape() {
+        guard let kind = styleKind, PlacementShape.allCases.indices.contains(styleShape.indexOfSelectedItem) else { return }
+        let previous = canvas.placementStyle(for: kind)
+        savePlacementStyle(PlacementStyle(name: placementName(for: kind), color: canvas.placementColor(for: kind),
+                                          shortcut: previous?.shortcut, outlineColor: previous?.outlineColor,
+                                          shape: PlacementShape.allCases[styleShape.indexOfSelectedItem]), for: kind)
     }
 
     @objc private func changeStyleColor() {
         guard let kind = styleKind else { return }
         savePlacementStyle(PlacementStyle(name: placementName(for: kind), color: styleColor.color,
                                           shortcut: canvas.placementStyle(for: kind)?.shortcut,
-                                          outlineColor: canvas.placementStyle(for: kind)?.outlineColor), for: kind)
+                                          outlineColor: canvas.placementStyle(for: kind)?.outlineColor, shape: canvas.placementStyle(for: kind)?.shape), for: kind)
     }
 
     @objc private func changeStyleOutline() {
@@ -343,7 +358,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         if !enabled { styleOutlineColor.deactivate() }
         savePlacementStyle(PlacementStyle(name: placementName(for: kind), color: canvas.placementColor(for: kind),
                                           shortcut: canvas.placementStyle(for: kind)?.shortcut,
-                                          outlineColor: enabled ? styleOutlineColor.color : nil), for: kind)
+                                          outlineColor: enabled ? styleOutlineColor.color : nil, shape: canvas.placementStyle(for: kind)?.shape), for: kind)
     }
 
     @objc private func resetPlacementStyle() {
@@ -448,7 +463,8 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         value.endpoint_wait = wait
         do {
             if canvas.selectedPlatform == nil {
-                guard (1...192).contains(travel), (1...192).contains(width), speed.isFinite,
+                guard let mapWidth = canvas.document?.width,
+                      (1...mapWidth).contains(travel), (1...mapWidth).contains(width), speed.isFinite,
                       (32...160).contains(speed), wait.isFinite, (0...5).contains(wait) else {
                     throw MapError("移動・横幅は1以上、速度32〜160、待機0〜5秒で指定してください。")
                 }
@@ -466,7 +482,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         guard categories.indices.contains(index), let map = canvas.document else { return }
         for button in categoryButtons { button.state = button.tag == index ? .on : .off }
         let selected = categories[index]
-        variantLabel.stringValue = selected == "Foods" ? "料理の種類" : "タイル"
+        variantLabel.stringValue = "タイル"
         variant.removeAllItems()
         variants = map.placementTiles(for: selected)
         let layerKind = MapDocument.layerKind(for: selected)
@@ -482,6 +498,7 @@ final class MapEdit: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFi
         variant.addItems(withTitles: variants.enumerated().map { index, id in
             let identifier = "\(id[0]) / \(id[1]),\(id[2]) / \(id[3])"
             if selected == MapDocument.breakableKind { return "茶色レンガ" }
+            if selected == "Foods" { return "1UP" }
             if selected == "OneWayPlatforms", id[0] == 1, id[2] == 0, (0...3).contains(id[1]) {
                 return ["左端", "中間", "右端", "単独"][id[1]]
             }

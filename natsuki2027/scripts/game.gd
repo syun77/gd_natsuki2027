@@ -3,23 +3,27 @@ extends Node2D
 const Checkpoint = preload("res://scripts/checkpoint.gd")
 const MovingPlatform = preload("res://scripts/moving_platform.gd")
 const ContactPickup = preload("res://scripts/contact_pickup.gd")
-const FoodCollectible = preload("res://scripts/food_collectible.gd")
+const OneUpCollectible = preload("res://scripts/one_up_collectible.gd")
 const Settings = preload("res://scripts/game_settings.gd")
 const TIME_ATTACK_RECORD := "user://time_attack_sprint.cfg"
 const SPIKE_LAYER := 64
 const RESPAWN_META := &"checkpoint_respawn"
+const INITIAL_LIVES := 3
 var active_checkpoint: NodePath
 @export var settings: Settings
 @export var stage_scene: PackedScene
 @export var stage_width := 5120
 @export var fall_restart_offset := 0.0
-@export var time_attack := false
 var elapsed := 0.0
 var best_time := 0.0
 var debug_checkpoint_used := false
 var timer_label: Label
 var collected_items: Dictionary = {}
 var score := 0
+var lives_remaining := INITIAL_LIVES
+var dying := false
+var game_over := false
+var lives_label: Label
 var cleared := false
 var exit_door: Sprite2D
 var entrance: Sprite2D
@@ -39,6 +43,8 @@ var down_wait_release := false
 var manual_down_pressed := false
 
 func _exit_tree() -> void:
+	if game_over:
+		get_tree().paused = false
 	if not preserve_bgm_on_exit:
 		BackgroundMusic.stop()
 
@@ -59,12 +65,12 @@ func _ready() -> void:
 	gum.settings = settings
 	player.global_position = $TheaterStage/PlacementMarkers/PlayerSpawn.global_position
 	_setup_checkpoints()
-	if time_attack:
+	if stage_scene != null:
 		for prop in [$LightBox, $HeavyBox, $PuzzleLightBox, $PuzzleHeavyBox, $PulleyTrolley]:
 			prop.free()
-		_setup_timer()
 	else:
 		_setup_puzzle_props()
+	_setup_timer()
 	gum.player = player
 	player.gum = gum
 	$GumAttachmentEffect.bind(gum)
@@ -112,30 +118,41 @@ func _setup_pickups() -> void:
 		if saved.get("scene") == scene_file_path:
 			collected_items = saved.get("collected_items", {}).duplicate()
 			score = saved.get("score", 0)
+			lives_remaining = saved.get("lives_remaining", INITIAL_LIVES)
 	$HUD/Score.text = "SCORE: %d" % score
+	lives_label = $HUD/Lives
+	_update_lives()
 	_register_pickups($TheaterStage)
 
 func _register_pickups(host: Node) -> void:
 	if host is TileMapLayer:
 		host.update_internals()
 	for child in host.get_children():
-		if child is ContactPickup or child is FoodCollectible:
+		if child is ContactPickup or child is OneUpCollectible:
 			# Capture the placed position before gum reeling can move the item.
+			child.collection_allowed = can_collect
 			var key := "%s:%s" % [get_path_to(host), child.position]
 			if collected_items.has(key):
 				host.remove_child(child)
 				child.queue_free()
 				continue
-			if child is FoodCollectible:
-				child.collected.connect(func(_food_id: StringName):
-					collected_items[key] = true
-					_add_score(FoodCollectible.POINTS)
-				)
+			child.collected.connect(func(): collected_items[key] = true)
+			if child is OneUpCollectible:
+				child.collected.connect(_add_life)
 			else:
-				child.collected.connect(func(): collected_items[key] = true)
 				child.collected.connect(_add_score.bind(child.points))
 		else:
 			_register_pickups(child)
+
+func _add_life() -> void:
+	lives_remaining += 1
+	_update_lives()
+
+func _update_lives() -> void:
+	lives_label.text = "LIFE × %d" % maxi(lives_remaining - 1, 0)
+
+func can_collect() -> bool:
+	return not (dying or game_over or cleared or restarting or (is_instance_valid(exit_door) and exit_door.started))
 
 func _add_score(points: int) -> void:
 	score += points
@@ -144,11 +161,9 @@ func _add_score(points: int) -> void:
 func _setup_pause_menu() -> void:
 	pause_menu = preload("res://scripts/pause_menu.gd").new()
 	add_child(pause_menu)
-	if time_attack:
-		pause_menu.buttons[1].text = "モード選択に戻る"
 	pause_menu.retry_requested.connect(restart)
-	pause_menu.selection_requested.connect(return_to_stage_select)
-	pause_menu.add_replay_action(func(): ReplayStore.play("res://scenes/mode_select.tscn"))
+	pause_menu.back_requested.connect(return_to_title)
+	pause_menu.add_replay_action(func(): ReplayStore.play("res://scenes/title.tscn"))
 	pause_menu.add_checkpoint_action(_debug_checkpoint_entries)
 	pause_menu.checkpoint_selected.connect(_debug_move_to_checkpoint)
 	pause_menu.resumed.connect(func(): suppress_gameplay_tick = true)
@@ -174,7 +189,7 @@ func _debug_checkpoint_entries() -> Array[Dictionary]:
 
 func _debug_move_to_checkpoint(path: NodePath) -> void:
 	var checkpoint := get_node_or_null(path) as Checkpoint
-	if restarting or checkpoint == null or checkpoint.get_parent() != get_node_or_null("TheaterStage/Checkpoints"):
+	if restarting or game_over or checkpoint == null or checkpoint.get_parent() != get_node_or_null("TheaterStage/Checkpoints"):
 		return
 	debug_checkpoint_used = true
 	active_checkpoint = path
@@ -208,10 +223,9 @@ func _setup_exit() -> void:
 	exit_door.player_entered.connect(_begin_exit)
 
 func _begin_exit() -> void:
-	if restarting or cleared or entrance.active or exit_door.started or is_instance_valid(death_effect):
+	if restarting or game_over or dying or cleared or entrance.active or exit_door.started:
 		return
-	if time_attack:
-		_finish_time_attack()
+	_finish_time_attack()
 	var vertical_speed: float = player.velocity.y
 	gum.detach("STAGE EXIT")
 	gum.hide()
@@ -243,10 +257,10 @@ func _physics_process(delta: float) -> void:
 	if suppress_gameplay_tick:
 		suppress_gameplay_tick = false
 		return
-	if Input.is_action_just_pressed("restart") and (time_attack or not cleared):
+	if Input.is_action_just_pressed("restart"):
 		restart()
 		return
-	if cleared:
+	if cleared or game_over:
 		return
 	if exit_door.active:
 		player.reset_motion()
@@ -266,16 +280,15 @@ func _physics_process(delta: float) -> void:
 		if not entrance.active:
 			gum.show()
 		return
-	if time_attack:
-		elapsed += delta
-		timer_label.text = "%sTIME: %.2f" % ["DEBUG " if debug_checkpoint_used else "", elapsed]
+	elapsed += delta
+	timer_label.text = "%sTIME: %.2f" % ["DEBUG " if debug_checkpoint_used else "", elapsed]
 	if is_instance_valid(death_effect):
 		if death_effect.step(delta):
-			restart(true)
+			_finish_death()
 		return
 	if player.position.y > settings.restart_y + fall_restart_offset:
-		SoundEffects.play(&"dead")
-		restart(true)
+		if _begin_death():
+			_finish_death()
 		return
 	var previous_shape_transform: Transform2D = player_shape.global_transform
 	if _touches_spikes(previous_shape_transform, Vector2.ZERO):
@@ -287,14 +300,14 @@ func _physics_process(delta: float) -> void:
 			if platform is MovingPlatform:
 				platform.step(delta)
 	gum.validate_connection()
-	var was_reeling: bool = gum.reeling_food()
+	var was_reeling: bool = gum.reeling_one_up()
 	var jump_requested := Input.is_action_just_pressed("jump") and not was_reeling
 	var attached_jump: bool = jump_requested and gum.connected() and not was_reeling
 	_update_direction()
 	var length_input := _read_length_input(jump_requested)
 	_handle_actions(jump_requested)
 	gum.step(delta, length_input)
-	player.food_reel_locked = was_reeling or gum.reeling_food()
+	player.one_up_reel_locked = was_reeling or gum.reeling_one_up()
 	player.simulate(delta, jump_requested, attached_jump)
 	var movement: Vector2 = player_shape.global_position - previous_shape_transform.origin
 	if _touches_spikes(previous_shape_transform, movement):
@@ -317,8 +330,7 @@ func _setup_checkpoints() -> void:
 	debug_checkpoint_used = saved.get("debug_checkpoint_used", false)
 	if debug_checkpoint_used:
 		suppress_gameplay_tick = true
-	if time_attack:
-		elapsed = saved.get("elapsed", 0.0)
+	elapsed = saved.get("elapsed", 0.0)
 	var checkpoint = get_node_or_null(saved.get("checkpoint", NodePath()))
 	if checkpoint != null and checkpoint.get_parent() == checkpoints:
 		active_checkpoint = get_path_to(checkpoint)
@@ -326,7 +338,7 @@ func _setup_checkpoints() -> void:
 		player.global_position = checkpoint.respawn_position()
 
 func _on_checkpoint_reached(checkpoint: Area2D) -> void:
-	if restarting or exit_door.started or is_instance_valid(death_effect):
+	if restarting or game_over or dying or cleared or exit_door.started:
 		return
 	if not checkpoint.activated:
 		SoundEffects.play(&"checkpoint")
@@ -334,9 +346,8 @@ func _on_checkpoint_reached(checkpoint: Area2D) -> void:
 	checkpoint.activate()
 
 func _die_on_spikes(center: Vector2) -> void:
-	if restarting or exit_door.started or is_instance_valid(death_effect):
+	if not _begin_death():
 		return
-	SoundEffects.play(&"dead")
 	gum.detach("SPIKES")
 	gum.hide()
 	player.hide()
@@ -347,18 +358,69 @@ func _die_on_spikes(center: Vector2) -> void:
 	death_effect.global_position = center
 	camera.global_position = center - player_shape.position
 
+func _begin_death() -> bool:
+	if dying or game_over or cleared or restarting or exit_door.started:
+		return false
+	dying = true
+	lives_remaining -= 1
+	_update_lives()
+	SoundEffects.play(&"dead")
+	return true
+
+func _finish_death() -> void:
+	if lives_remaining > 0:
+		restart(true)
+	else:
+		_show_game_over()
+
+func _show_game_over() -> void:
+	game_over = true
+	for child in get_children():
+		child.process_mode = Node.PROCESS_MODE_PAUSABLE
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	ReplayStore.suspend(false)
+	pause_menu.close()
+	pause_menu.set_process_input(false)
+	get_tree().paused = true
+	gum.detach("GAME OVER")
+	gum.hide()
+	player.reset_motion()
+	player.hide()
+	player.afterimages.clear()
+	if is_instance_valid(death_effect):
+		death_effect.queue_free()
+	if get_tree().has_meta(RESPAWN_META):
+		get_tree().remove_meta(RESPAWN_META)
+	var column := _create_result_column()
+	var title := Label.new()
+	title.text = "GAME OVER"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(title)
+	for caption in ["リトライ", "タイトルに戻る"]:
+		var button := Button.new()
+		button.text = caption
+		button.custom_minimum_size.y = 64
+		column.add_child(button)
+		if caption == "リトライ":
+			button.pressed.connect(restart)
+			button.grab_focus()
+		else:
+			button.pressed.connect(return_to_title)
+
 func restart(from_checkpoint := false) -> void:
 	if restarting:
 		return
 	restarting = true
+	get_tree().paused = false
 	preserve_bgm_on_exit = from_checkpoint
 	ReplayStore.suspend(from_checkpoint)
 	pause_menu.close()
-	if from_checkpoint and (time_attack or not active_checkpoint.is_empty()):
+	if from_checkpoint:
 		get_tree().set_meta(RESPAWN_META, {
 			"scene": scene_file_path, "checkpoint": active_checkpoint, "elapsed": elapsed,
 			"debug_checkpoint_used": debug_checkpoint_used,
 			"collected_items": collected_items.duplicate(), "score": score,
+			"lives_remaining": lives_remaining,
 		})
 	elif get_tree().has_meta(RESPAWN_META):
 		get_tree().remove_meta(RESPAWN_META)
@@ -414,7 +476,7 @@ func _update_direction() -> void:
 		aim_direction = direction.sign().normalized()
 
 func _handle_actions(jump_requested: bool) -> void:
-	if gum.reeling_food():
+	if gum.reeling_one_up():
 		return
 	if jump_requested:
 		gum.detach()
@@ -428,23 +490,21 @@ func _handle_actions(jump_requested: bool) -> void:
 		gum.fire(aim_direction)
 		player.fire_gum()
 
-func return_to_stage_select() -> void:
+func return_to_title() -> void:
 	if restarting:
 		return
+	get_tree().paused = false
 	ReplayStore.suspend(false)
 	restarting = true
 	pause_menu.close()
 	if get_tree().has_meta(RESPAWN_META):
 		get_tree().remove_meta(RESPAWN_META)
-	gum.detach("STAGE SELECT")
-	var selection := "mode_select" if time_attack else "stage_select"
-	get_tree().call_deferred("change_scene_to_file", "res://scenes/%s.tscn" % selection)
+	gum.detach("TITLE")
+	get_tree().call_deferred("change_scene_to_file", "res://scenes/title.tscn")
 
-func _clear_stage() -> void:
-	ReplayStore.finish()
-	cleared = true
-	gum.detach("STAGE CLEAR")
+func _create_result_column() -> VBoxContainer:
 	var center := CenterContainer.new()
+	center.process_mode = Node.PROCESS_MODE_ALWAYS
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	$HUD.add_child(center)
 	var panel := PanelContainer.new()
@@ -453,9 +513,16 @@ func _clear_stage() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 24)
 	panel.add_child(column)
+	return column
+
+func _clear_stage() -> void:
+	ReplayStore.finish()
+	cleared = true
+	gum.detach("STAGE CLEAR")
+	var column := _create_result_column()
 	var title := Label.new()
-	title.text = "TIME %.2f  /  BEST %.2f" % [elapsed, best_time] if time_attack else "STAGE CLEAR!"
-	if time_attack and debug_checkpoint_used:
+	title.text = "TIME %.2f  /  BEST %.2f" % [elapsed, best_time]
+	if debug_checkpoint_used:
 		title.text = "DEBUG TIME %.2f" % elapsed
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 40)
@@ -469,18 +536,10 @@ func _clear_stage() -> void:
 		var error_label := Label.new()
 		error_label.text = ReplayStore.failure
 		column.add_child(error_label)
-	replay.pressed.connect(func(): ReplayStore.play("res://scenes/mode_select.tscn"))
-	if time_attack:
-		var retry := Button.new()
-		retry.text = "リトライ"
-		retry.custom_minimum_size.y = 64
-		column.add_child(retry)
-		retry.pressed.connect(restart)
-		retry.grab_focus()
-		return
-	var back := Button.new()
-	back.text = "ステージ選択へ"
-	back.custom_minimum_size.y = 64
-	column.add_child(back)
-	back.pressed.connect(return_to_stage_select)
-	back.grab_focus()
+	replay.pressed.connect(func(): ReplayStore.play("res://scenes/title.tscn"))
+	var retry := Button.new()
+	retry.text = "リトライ"
+	retry.custom_minimum_size.y = 64
+	column.add_child(retry)
+	retry.pressed.connect(restart)
+	retry.grab_focus()

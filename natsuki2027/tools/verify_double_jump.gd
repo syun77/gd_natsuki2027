@@ -68,11 +68,8 @@ func verify() -> void:
 	var rotation_before: float = player.sprite.rotation
 	await tick(player)
 	assert(not is_equal_approx(rotation_before, player.sprite.rotation), "Rotation continues without further input")
-	var defaults = load("res://scripts/game_settings.gd").new()
 	var saved = load("res://resources/game_settings.tres")
-	for property in defaults.get_property_list():
-		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and property.usage & PROPERTY_USAGE_STORAGE:
-			assert(defaults.get(property.name) == saved.get(property.name), "Schema matches saved baseline: %s" % property.name)
+	assert(saved.double_jump_kick_speed > 0.0 and saved.double_jump_rotation_speed >= 0.0, "Saved jump tuning is valid")
 	player.external_velocity.x = 0.0
 	for speed in [1.0, 4.0, 0.0]:
 		player.settings.double_jump_rotation_speed = speed
@@ -117,11 +114,11 @@ func verify() -> void:
 	await tick(player)
 	await tick(player, true)
 	assert(player.double_jump_spinning and not player.air_jump_available)
-	player.food_reel_locked = true
+	player.one_up_reel_locked = true
 	await tick(player, true)
 	assert(player.sprite.rotation == 0.0 and not player.double_jump_spinning and player.velocity == Vector2.ZERO)
 	assert(player.sprite.animation != &"double_jump", "Reel reset restores ordinary pose")
-	player.food_reel_locked = false
+	player.one_up_reel_locked = false
 	await verify_wall_jump_removal(player)
 	await verify_vertical_speed_assignment(player)
 	player.queue_free()

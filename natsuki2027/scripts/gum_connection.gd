@@ -5,7 +5,7 @@ signal shot_started
 signal shot_advanced(start: Vector2, end: Vector2)
 signal adhesion_ended
 
-const Food = preload("res://scripts/food_collectible.gd")
+const OneUp = preload("res://scripts/one_up_collectible.gd")
 const Settings = preload("res://scripts/game_settings.gd")
 const RIGID_CONTACT_TOLERANCE := 2.0
 const AIM_TILE_BLINK_HZ := 3.0
@@ -104,14 +104,14 @@ func attachable(hit: Dictionary) -> bool:
 	if hit.is_empty():
 		return false
 	var body = hit.collider
-	var supported: bool = body is StaticBody2D or body is RigidBody2D or (body is Food and not body.is_collected)
+	var supported: bool = body is StaticBody2D or body is RigidBody2D or (body is OneUp and not body.is_collected)
 	if body is TileMapLayer:
 		supported = body.has_body_rid(hit.rid) and (PhysicsServer2D.body_get_collision_layer(hit.rid) & 16) != 0
 	return supported and not body.is_in_group("gum_blocked") and origin().distance_to(_attachment_point(hit)) <= settings.maximum_length
 
 func _attachment_point(hit: Dictionary) -> Vector2:
 	var body = hit.collider
-	if body is Food:
+	if body is OneUp:
 		return body.global_position
 	if body is TileMapLayer:
 		# The generous hit area extends outside the cell; the RID owns its identity.
@@ -150,7 +150,7 @@ func _attach_hit(hit: Dictionary) -> void:
 	var normal: Vector2 = hit.get("normal", Vector2.ZERO)
 	if normal.is_zero_approx():
 		normal = (origin() - point).normalized()
-	if target is Food:
+	if target is OneUp:
 		state = State.REELING
 		target.being_pulled = true
 		player.reset_motion()
@@ -159,21 +159,21 @@ func _attach_hit(hit: Dictionary) -> void:
 	SoundEffects.play(&"hit")
 	adhesion_started.emit(normal, target is TileMapLayer)
 
-func reeling_food() -> bool:
+func reeling_one_up() -> bool:
 	return state == State.REELING and connected()
 
-func _step_food_reel(delta: float) -> void:
-	var food: Food = target
+func _step_one_up_reel(delta: float) -> void:
+	var item: OneUp = target
 	var hand: Vector2 = player.gum_visual_origin()
-	food.global_position = food.global_position.move_toward(hand, settings.food_reel_speed * delta)
+	item.global_position = item.global_position.move_toward(hand, settings.one_up_reel_speed * delta)
 	target_local_point = Vector2.ZERO
-	path.reset(origin(), food.global_position)
+	path.reset(origin(), item.global_position)
 	rest_length = path.length
-	last_display = PackedVector2Array([hand, food.global_position])
-	if food.global_position.distance_to(hand) <= 0.01:
-		food.collect()
-		player.food_jump_available = true
-		detach("FOOD COLLECTED")
+	last_display = PackedVector2Array([hand, item.global_position])
+	if item.global_position.distance_to(hand) <= 0.01:
+		item.collect()
+		player.one_up_jump_available = true
+		detach("ONE_UP COLLECTED")
 		cancel_return()
 
 func fire(direction: Vector2) -> void:
@@ -263,7 +263,7 @@ func detach(reason := "RELEASED") -> void:
 		return_time = 0.0
 		if return_points.size() > 0:
 			tip = return_points[-1]
-	if is_instance_valid(target) and target is Food:
+	if is_instance_valid(target) and target is OneUp:
 		target.being_pulled = false
 	# Never alter either endpoint's velocity on release.
 	target = null
@@ -358,9 +358,9 @@ func step(delta: float, length_input := 0.0) -> void:
 	if state == State.OUTBOUND:
 		_step_outbound(delta)
 		return
-	if reeling_food():
+	if reeling_one_up():
 		_play_contraction_sound()
-		_step_food_reel(delta)
+		_step_one_up_reel(delta)
 		return
 	if state == State.RETURNING:
 		_step_return(delta)

@@ -90,10 +90,10 @@ func _initialize() -> void:
 	var boxes := layer("GumBoxes")
 	boxes.tile_set = preload("res://assets/props/gum_box_tileset.tres")
 	var foods := layer("Foods")
-	foods.tile_set = load("res://assets/foods/food_tileset.tres")
+	foods.tile_set = load("res://assets/items/one_up_tileset.tres")
 	foods.z_index = 3
-	for food in Layout.FOODS:
-		foods.set_cell(Vector2i(food.x, food.y), 0, Vector2i.ZERO, food.z)
+	for item in Layout.ONE_UPS:
+		foods.set_cell(Vector2i(item.x, item.y), 0, Vector2i.ZERO, item.z)
 	add(stage, NoteLayout.create_layer(NoteLayout.RESTAURANT))
 	add(stage, BaguetteLayout.create_layer(BaguetteLayout.THEATER_STAGE))
 	for placement in Layout.LADDERS:

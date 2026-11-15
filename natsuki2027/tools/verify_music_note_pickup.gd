@@ -21,7 +21,7 @@ func verify() -> void:
 	collision.shape = RectangleShape2D.new()
 	box.add_child(collision)
 	root.add_child(box)
-	for stage_name in ["theater_stage", "stage_2", "stage_3"]:
+	for stage_name in ["theater_stage", "time_attack"]:
 		var packed = load("res://scenes/stages/%s.tscn" % stage_name)
 		var stage = packed.instantiate()
 		root.add_child(stage)
@@ -78,7 +78,7 @@ func verify() -> void:
 	assert(is_instance_valid(popup) and popup.position.y < popup_y, "Popup survives note deletion and rises")
 	await create_timer(0.6).timeout
 	assert(not is_instance_valid(popup), "Popup expires")
-	for entry in [["res://scenes/items/baguette.tscn", "30"], ["res://scenes/items/foods/milano_doria.tscn", "300"]]:
+	for entry in [["res://scenes/items/baguette.tscn", "30"], ["res://scenes/items/one_up.tscn", "300"]]:
 		var item = load(entry[0]).instantiate()
 		root.add_child(item)
 		item.position = Vector2(300, -300)
@@ -106,5 +106,5 @@ func verify() -> void:
 	await process_frame
 	player.free()
 	box.free()
-	print("PASS: music note player contact across3stages, props/group filtering, gum exclusion, pause, reload, one-shot ten points, rising/expiring popup and Time Attack HUD")
+	print("PASS: music note player contact on retained maps, props/group filtering, gum exclusion, pause, reload, one-shot ten points, rising/expiring popup and Time Attack HUD")
 	quit()

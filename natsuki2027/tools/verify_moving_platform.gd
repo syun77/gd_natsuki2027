@@ -49,26 +49,25 @@ func verify() -> void:
 				await ticks(1)
 				check(player.is_on_floor(), "%s/%s support at tick %s" % [direction, speed, i])
 				check((player.position - platform.position).distance_to(offset) < 0.2, "%s/%s stable relative carry" % [direction, speed])
-			var motor_velocity: Vector2 = platform.motion_velocity
 			await ticks(1, true)
 			check(not player.is_on_floor(), "kick leaves moving floor")
-			check(absf(player.external_velocity.x - motor_velocity.x) < 0.1, "horizontal motor momentum inherited once")
-			check(absf(player.external_velocity.y - (motor_velocity.y - player.settings.kick_speed + player.settings.gravity / 60.0)) < 0.1, "vertical motor momentum inherited once")
-	# Walking off transfers momentum once, including floor-snap-only edge support.
+			check(absf(player.external_velocity.x) < 0.1, "kick excludes horizontal motor velocity")
+			check(absf(player.external_velocity.y - (-player.settings.kick_speed + player.settings.gravity / 60.0)) < 0.1, "kick excludes vertical motor velocity")
+	# Walking off also excludes motor velocity so coyote kicks stay independent.
 	for direction in ["right", "left"]:
 		await fixture(direction, 64)
 		moving = true
 		await ticks(8)
 		var action := "move_right" if direction == "right" else "move_left"
-		var expected := 64.0 if direction == "right" else -64.0
+		var expected := 0.0
 		Input.action_press(action)
 		for i in 60:
 			await ticks(1)
 			if not player.is_on_floor(): break
 		Input.action_release(action)
-		check(not player.is_on_floor() and absf(player.external_velocity.x - expected) < 0.1, "mirrored walk-off inherits motor momentum")
+		check(not player.is_on_floor() and absf(player.external_velocity.x - expected) < 0.1, "mirrored walk-off excludes motor velocity")
 		await ticks(5)
-		check(absf(player.external_velocity.x - expected) < 0.1, "walk-off momentum is not added repeatedly")
+		check(absf(player.external_velocity.x - expected) < 0.1, "airborne motion excludes motor velocity")
 	# Upward passage and side entry have no underside/side response.
 	await fixture("up", 64)
 	player.position = Vector2(248, 370)

@@ -1,7 +1,7 @@
 extends Node
 ## Visual fixed-step recording: playback never runs gameplay or physics.
 const SAVE_PATH := "user://latest_replay.dat"
-const FORMAT_VERSION := 3
+const FORMAT_VERSION := 4
 var save_path := SAVE_PATH
 var sounds: Array = []
 var frames: Array = []
@@ -9,7 +9,7 @@ var previous: Dictionary = {}
 var game: Node2D
 var continuing := false
 var latest: Dictionary = {}
-var return_scene := "res://scenes/mode_select.tscn"
+var return_scene := "res://scenes/title.tscn"
 var recording_scene := ""
 var failure := ""
 
@@ -79,7 +79,7 @@ func capture() -> void:
 			removed.append(id)
 	frames.append({"changed": changed, "removed": removed,
 		"camera": game.camera.get_screen_center_position(),
-		"score": game.score, "elapsed": game.elapsed, "time_attack": game.time_attack, "sounds": sounds.duplicate()})
+		"score": game.score, "elapsed": game.elapsed, "sounds": sounds.duplicate()})
 	sounds.clear()
 	previous = visuals
 
@@ -211,7 +211,7 @@ func valid_recording(data: Variant) -> bool:
 			return false
 		if not frame.get("camera") is Vector2 or not frame.camera.is_finite():
 			return false
-		if not frame.get("score") is int or not frame.get("elapsed") is float or not frame.get("time_attack") is bool or not frame.get("sounds") is Array:
+		if not frame.get("score") is int or not frame.get("elapsed") is float or not frame.get("sounds") is Array:
 			return false
 		for cue in frame.sounds:
 			if not cue is StringName and not cue is String:

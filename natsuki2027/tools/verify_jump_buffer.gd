@@ -57,10 +57,10 @@ func verify() -> void:
 	player.position.y = 450
 	await step(player)
 	await step(player, true)
-	player.food_reel_locked = true
+	player.one_up_reel_locked = true
 	await step(player)
 	assert(player.jump_buffer_remaining == 0, "Reeling must clear pending input")
-	player.food_reel_locked = false
+	player.one_up_reel_locked = false
 	await step(player, true)
 	player.reset_motion()
 	assert(player.jump_buffer_remaining == 0, "Motion reset must clear pending input")

@@ -73,6 +73,26 @@ func verify() -> void:
 	check(is_equal_approx(game.camera.zoom.x, one_step), "Exponential transition is independent of timestep subdivision")
 	check(game.camera.position == game.player.position, "Camera continues player follow")
 	game.free()
+	var time_game = load("res://scenes/game_time_attack.tscn").instantiate()
+	root.add_child(time_game)
+	time_game.set_physics_process(false)
+	var camera: Camera2D = time_game.camera
+	var map_right := 0.0
+	for child in time_game.get_node("TheaterStage").get_children():
+		if child is Polygon2D and child.z_index == -10:
+			for point in child.polygon:
+				map_right = maxf(map_right, point.x)
+	check(camera.limit_right == 692 * 32 and camera.limit_right == int(map_right), "Time Attack camera limit matches full saved map width")
+	camera.position_smoothing_enabled = false
+	var half_width := root.get_visible_rect().size.x / camera.zoom.x / 2.0
+	for target_x in [7000.0, map_right - half_width - 64.0, map_right]:
+		time_game.player.position = Vector2(target_x, 384)
+		time_game._update_camera(1.0)
+		camera.force_update_scroll()
+		await process_frame
+		var expected := minf(target_x, map_right - half_width)
+		check(absf(camera.get_screen_center_position().x - expected) < 1.0, "Camera follows full map and clamps viewport at right edge: %s" % target_x)
+	time_game.free()
 	if failures == 0:
-		print("PASS: camera zoom")
+		print("PASS: camera zoom and full Time Attack map scrolling")
 	quit(1 if failures else 0)

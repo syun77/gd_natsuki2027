@@ -30,7 +30,7 @@ func build() -> void:
 	platforms.name = "MovingPlatforms"
 	add(stage, platforms)
 	var background := Polygon2D.new()
-	background.polygon = PackedVector2Array([Vector2.ZERO, Vector2(2048, 0), Vector2(2048, 768), Vector2(0, 768)])
+	background.polygon = PackedVector2Array([Vector2.ZERO, Vector2(22144, 0), Vector2(22144, 768), Vector2(0, 768)])
 	background.color = Color("526d70")
 	background.z_index = -10
 	add(stage, background)
@@ -70,7 +70,7 @@ func build() -> void:
 	var spikes := layer("Spikes", preload("res://assets/hazards/spike_tileset.tres"))
 	spikes.z_index = 3
 	layer("GumBoxes", preload("res://assets/props/gum_box_tileset.tres"))
-	var foods := layer("Foods", preload("res://assets/foods/food_tileset.tres"))
+	var foods := layer("Foods", preload("res://assets/items/one_up_tileset.tres"))
 	foods.z_index = 3
 	add(stage, BaguetteLayout.create_layer([]))
 	add(stage, NoteLayout.create_layer([]))

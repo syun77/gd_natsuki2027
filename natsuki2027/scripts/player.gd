@@ -41,8 +41,8 @@ var moving_floor: MovingPlatform
 var ladder: Node2D
 var ladder_wait_release := false
 var ladder_ignoring_one_way := false
-var food_reel_locked := false
-var food_jump_available := false
+var one_up_reel_locked := false
+var one_up_jump_available := false
 var jump_buffer_remaining := 0.0
 var coyote_remaining := 0.0
 var coyote_gravity_velocity := Vector2.ZERO
@@ -134,7 +134,7 @@ func reset_motion() -> void:
 	coyote_gravity_velocity = Vector2.ZERO
 
 func simulate(delta: float, jump_requested := false, attached_jump := false) -> void:
-	if food_reel_locked:
+	if one_up_reel_locked:
 		reset_motion()
 		landing_air_time = 0.0
 		landing_air_distance = 0.0
@@ -148,7 +148,6 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 	if jump_requested:
 		jump_buffer_remaining = settings.jump_buffer_time
 	var departing_platform := _moving_support() if drop_through_remaining <= 0.0 else null
-	var departing_velocity: Vector2 = departing_platform.motion_velocity if departing_platform != null else Vector2.ZERO
 	_update_drop_through(delta)
 	if jump_requested and Input.is_action_pressed("aim_down") and _can_drop_through():
 		jump_buffer_remaining = 0.0
@@ -206,16 +205,16 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 	jump_requested = jump_requested or (grounded and jump_buffer_remaining > 0.0)
 	var coyote_kick := not jump_contact and coyote_remaining > 0.0
 	attached_jump = attached_jump and fresh_jump
-	var food_jump := food_jump_available and fresh_jump
+	var one_up_jump := one_up_jump_available and fresh_jump
 	var contact_kick := kick_available and (jump_contact or coyote_kick)
-	var special_jump := attached_jump or food_jump or ladder_jump
+	var special_jump := attached_jump or one_up_jump or ladder_jump
 	var air_jump := fresh_jump and air_jump_available and not jump_contact and not coyote_kick and not special_jump
 	var world_up_jump := special_jump or air_jump
 	var can_kick := world_up_jump or contact_kick
 	if jump_requested:
 		var result := "REJECTED_NO_CONTACT" if not touching else "REJECTED_NOT_REARMED"
 		if can_kick:
-			result = "ACCEPTED_LADDER" if ladder_jump else ("ACCEPTED_FOOD" if food_jump else ("ACCEPTED_GUM" if attached_jump else ("ACCEPTED_COYOTE" if coyote_kick else "ACCEPTED")))
+			result = "ACCEPTED_LADDER" if ladder_jump else ("ACCEPTED_ONE_UP" if one_up_jump else ("ACCEPTED_GUM" if attached_jump else ("ACCEPTED_COYOTE" if coyote_kick else "ACCEPTED")))
 		if air_jump:
 			result = "ACCEPTED_DOUBLE"
 		_log_jump_state(result)
@@ -251,10 +250,10 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 		if settings.jump_diagnostics:
 			print("[JumpDiagnostic] KICK_APPLIED tick=%d feet=%s source=%s normal=%s angle_from_up_deg=%.3f impulse=%s compensation=%s external_before=%s external_after=%s control=%s launch=%s delta=%.6f" % [
 				Engine.get_physics_frames(), global_position,
-				"double" if air_jump else "ladder" if ladder_jump else ("food" if food_jump else ("gum" if attached_jump else ("coyote" if coyote_kick else ("floor" if grounded else "ceiling")))),
+				"double" if air_jump else "ladder" if ladder_jump else ("item" if one_up_jump else ("gum" if attached_jump else ("coyote" if coyote_kick else ("floor" if grounded else "ceiling")))),
 				kick_direction, rad_to_deg(Vector2.UP.angle_to(kick_direction)), impulse, compensation,
 				external_before, external_velocity, control_velocity, control_velocity + external_velocity, delta])
-		food_jump_available = false
+		one_up_jump_available = false
 		kick_available = false
 		coyote_remaining = 0.0
 		coyote_gravity_velocity = Vector2.ZERO
@@ -307,12 +306,6 @@ func simulate(delta: float, jump_requested := false, attached_jump := false) -> 
 			if not impulse.is_zero_approx():
 				pending_impulses.append({"body": body, "point": contact.point, "normal": normal,
 					"impulse": impulse, "kind": "support"})
-	if is_instance_valid(departing_platform) and not is_on_floor():
-		for contact in collision_contacts:
-			var normal := _support_face_normal(contact)
-			if departing_velocity.dot(normal) < 0.0:
-				departing_velocity = departing_velocity.slide(normal)
-		external_velocity += departing_velocity
 	_update_landing_event(delta, grounded, before_position, landing_incoming, compression_recovered)
 	_apply_ground_friction(delta, support_normal)
 	_apply_rigid_impulses(pending_impulses)

@@ -63,9 +63,11 @@ func verify() -> void:
 		var fresh = current_scene
 		check(not fresh.restarting, "Restart state cleared")
 		check(not fresh.gum.connected(), "Restart clears gum")
-		check(fresh.player.global_position.distance_to(fresh.get_node("TheaterStage/PlacementMarkers/PlayerSpawn").global_position) < 4, "Player respawns at stage entrance")
+		check(fresh.player.global_position.distance_to(fresh.entrance.global_position) < 4, "Player respawns at stage entrance")
 		fresh.set_physics_process(false)
-		# Stationary overlap is lethal even when player movement is locked by food reel.
+		if fresh.entrance.active:
+			fresh._physics_process(fresh.entrance.TOTAL_TIME)
+		# Stationary overlap is lethal even when player movement is locked by item reel.
 		var spike = load("res://scenes/hazards/spikes.tscn").instantiate()
 		spike.position = fresh.player.global_position + Vector2(0, -26)
 		fresh.add_child(spike)

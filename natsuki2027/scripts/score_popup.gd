@@ -3,9 +3,12 @@ extends RefCounted
 const DURATION := 0.65
 
 static func spawn(item: Node2D, points: int) -> Label:
+	return spawn_text(item, str(points))
+
+static func spawn_text(item: Node2D, caption: String) -> Label:
 	var popup := Label.new()
 	popup.name = "ScorePopup"
-	popup.text = str(points)
+	popup.text = caption
 	popup.theme = preload("res://resources/score_popup_theme.tres")
 	popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup.z_index = 10

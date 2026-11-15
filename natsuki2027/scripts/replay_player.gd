@@ -34,7 +34,7 @@ func _ready() -> void:
 	pause_menu.buttons[0].text = "最初から再生"
 	pause_menu.buttons[1].text = "戻る"
 	pause_menu.retry_requested.connect(_restart)
-	pause_menu.selection_requested.connect(_back)
+	pause_menu.back_requested.connect(_back)
 	if not ReplayStore.available():
 		_back()
 		return
@@ -117,7 +117,6 @@ func _apply_frame(frame: Dictionary) -> void:
 	camera.zoom = Vector2.ONE * settings.camera_normal_zoom
 	camera.reset_smoothing()
 	score.text = "SCORE %d" % frame.score
-	timer.visible = frame.time_attack
 	timer.text = "TIME %.2f" % frame.elapsed
 
 func _create_visual(data: Dictionary) -> Node2D:

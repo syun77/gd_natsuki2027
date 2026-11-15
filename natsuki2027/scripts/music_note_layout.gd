@@ -30,25 +30,6 @@ const RESTAURANT := [
 	Vector2i(149, 14), Vector2i(149, 13), Vector2i(150, 10), Vector2i(151, 10),
 	Vector2i(152, 10),
 ]
-const TERRACE := [
-	Vector2i(6, 20), Vector2i(8, 18), Vector2i(10, 18), Vector2i(12, 18),
-	Vector2i(15, 18), Vector2i(17, 18), Vector2i(20, 20), Vector2i(22, 20),
-	Vector2i(22, 18), Vector2i(23, 16), Vector2i(25, 16), Vector2i(28, 16),
-	Vector2i(31, 18), Vector2i(33, 20), Vector2i(35, 20), Vector2i(35, 18),
-	Vector2i(37, 18), Vector2i(40, 18), Vector2i(44, 20), Vector2i(46, 20),
-	Vector2i(46, 18), Vector2i(47, 16), Vector2i(52, 16),
-	Vector2i(55, 18), Vector2i(59, 20),
-]
-const KITCHEN := [
-	Vector2i(6, 20), Vector2i(8, 18), Vector2i(10, 18), Vector2i(12, 20),
-	Vector2i(15, 18), Vector2i(17, 18), Vector2i(20, 18),
-	Vector2i(23, 20), Vector2i(25, 20), Vector2i(28, 18), Vector2i(30, 20),
-	Vector2i(30, 18), Vector2i(31, 16), Vector2i(33, 16), Vector2i(37, 16),
-	Vector2i(39, 18), Vector2i(45, 18),
-	Vector2i(47, 18), Vector2i(50, 18), Vector2i(53, 20), Vector2i(54, 20),
-	Vector2i(58, 20),
-]
-
 static func create_layer(cells: Array) -> TileMapLayer:
 	var notes := TileMapLayer.new()
 	notes.name = "MusicNotes"

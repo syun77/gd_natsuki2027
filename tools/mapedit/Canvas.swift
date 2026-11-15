@@ -1,6 +1,29 @@
 import AppKit
 
+enum PlacementShape: String, Codable, CaseIterable {
+    case square, circle, triangle
+
+    var title: String {
+        switch self { case .square: return "四角"; case .circle: return "丸"; case .triangle: return "三角形" }
+    }
+
+    func path(in rect: CGRect) -> NSBezierPath {
+        switch self {
+        case .square: return NSBezierPath(rect: rect)
+        case .circle: return NSBezierPath(ovalIn: rect)
+        case .triangle:
+            let path = NSBezierPath()
+            path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+            path.line(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.line(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.close()
+            return path
+        }
+    }
+}
+
 struct PlacementStyle: Codable {
+    let shape: PlacementShape?
     let name: String
     let red: CGFloat
     let green: CGFloat
@@ -8,7 +31,8 @@ struct PlacementStyle: Codable {
     let shortcut: String?
     let outlineRGB: [CGFloat]?
 
-    init(name: String, color: NSColor, shortcut: String? = nil, outlineColor: NSColor? = nil) {
+    init(name: String, color: NSColor, shortcut: String? = nil, outlineColor: NSColor? = nil, shape: PlacementShape? = nil) {
+        self.shape = shape
         self.name = name
         self.shortcut = shortcut
         let outline = outlineColor?.usingColorSpace(.sRGB)
@@ -39,7 +63,7 @@ final class Canvas: NSView {
     var onOverviewChange: (() -> Void)?
     var selectedKind: String? { didSet { needsDisplay = true } }
     var platformTemplate = MovingPlatform(id: "preview", x: 0, y: 0)
-    var selectedPlatformID: String?
+    var selectedPlatformID: String? { didSet { refreshView() } }
     var onPlatformSelection: (() -> Void)?
     private var platformDragID: String?
     private var platformDragAnchor: GridPoint?
@@ -86,14 +110,19 @@ final class Canvas: NSView {
         placementColor(for: MapDocument.placementCategory(kind: kind, tile: tile))
     }
 
-    func drawPlacementOutline(in rect: CGRect, kind: String, tile: [Int]? = nil, oval: Bool = false) {
+    func placementPath(in rect: CGRect, kind: String, tile: [Int]? = nil) -> NSBezierPath {
+        let category = MapDocument.placementCategory(kind: kind, tile: tile)
+        return (placementStyle(for: category)?.shape ?? .square).path(in: rect)
+    }
+
+    func drawPlacementOutline(in rect: CGRect, kind: String, tile: [Int]? = nil) {
         let category = MapDocument.placementCategory(kind: kind, tile: tile)
         guard let color = placementStyle(for: category)?.outlineColor else { return }
         let width = min(2, min(rect.width, rect.height) / 3)
         guard width > 0 else { return }
         color.setStroke()
         let inset = rect.insetBy(dx: width / 2, dy: width / 2)
-        let path = oval ? NSBezierPath(ovalIn: inset) : NSBezierPath(rect: inset)
+        let path = placementPath(in: inset, kind: kind, tile: tile)
         path.lineWidth = width
         path.stroke()
     }
@@ -200,7 +229,7 @@ final class Canvas: NSView {
             }
             placementColor(for: visible.kind, tile: visible.tile).setFill()
             let placement = Self.placementRect(in: cell, kind: visible.kind)
-            placement.fill()
+            placementPath(in: placement, kind: visible.kind, tile: visible.tile).fill()
             drawPlacementOutline(in: placement, kind: visible.kind, tile: visible.tile)
             if step >= 24 && placement.height >= 14 && visible.kind == selectedKind {
                 let id = visible.tile
@@ -210,7 +239,7 @@ final class Canvas: NSView {
                                      .font: NSFont.monospacedSystemFont(ofSize: 9, weight: .medium)])
             }
         }
-        for platform in document.movingPlatforms {
+        for platform in platformsInDrawingOrder {
             drawPlatform(platform, origin: origin, scale: zoom,
                          selected: platform.id == selectedPlatformID, preview: false)
         }
@@ -225,8 +254,8 @@ final class Canvas: NSView {
             let dot = NSBezierPath(ovalIn: CGRect(x: x - radius, y: y - radius,
                                                  width: radius * 2, height: radius * 2))
             placementColor(for: path).setFill()
-            dot.fill()
-            drawPlacementOutline(in: dot.bounds, kind: path, oval: true)
+            placementPath(in: dot.bounds, kind: path).fill()
+            drawPlacementOutline(in: dot.bounds, kind: path)
             if selected {
                 NSColor.systemYellow.setStroke()
                 dot.stroke()
@@ -242,13 +271,14 @@ final class Canvas: NSView {
                 var platform = platformTemplate
                 platform.x = hover.x
                 platform.y = hover.y
+                guard document.overlappingPlatform(with: platform) == nil else { return }
                 drawPlatform(platform, origin: origin, scale: zoom, selected: true, preview: true)
                 return
             }
             let cell = rect(hover)
             let previewRect = selectedKind.map { Self.placementRect(in: cell, kind: $0) }
                 ?? cell
-            let preview = NSBezierPath(rect: previewRect)
+            let preview = placementPath(in: previewRect, kind: selectedKind ?? "", tile: tile)
             if let selectedKind, tile != nil || selectedKind == MapDocument.checkpointKind {
                 placementColor(for: selectedKind, tile: tile).withAlphaComponent(0.35).setFill()
                 preview.fill()
@@ -404,6 +434,11 @@ final class Canvas: NSView {
         document = next
     }
 
+    var platformsInDrawingOrder: [MovingPlatform] {
+        let platforms = document?.movingPlatforms ?? []
+        return platforms.filter { $0.id != selectedPlatformID } + platforms.filter { $0.id == selectedPlatformID }
+    }
+
     var selectedPlatform: MovingPlatform? {
         document?.movingPlatforms.first { $0.id == selectedPlatformID }
     }
@@ -429,7 +464,12 @@ final class Canvas: NSView {
     }
 
     private func beginPlatform(_ event: NSEvent, erase: Bool) {
-        guard var next = document, let point = cell(at: location(event)) else { return }
+        guard let point = cell(at: location(event)) else { return }
+        beginPlatform(at: point, erase: erase)
+    }
+
+    func beginPlatform(at point: GridPoint, erase: Bool) {
+        guard var next = document else { return }
         if let index = next.movingPlatforms.lastIndex(where: { $0.contains(point) }) {
             selectedPlatformID = erase ? nil : next.movingPlatforms[index].id
             if erase {
@@ -444,6 +484,11 @@ final class Canvas: NSView {
             platform.id = "p_" + UUID().uuidString.lowercased()
             platform.x = point.x
             platform.y = point.y
+            if let existing = next.overlappingPlatform(with: platform) {
+                selectedPlatformID = existing.id
+                onPlatformSelection?()
+                return
+            }
             next.movingPlatforms.append(platform)
             do {
                 try next.validate()
@@ -466,12 +511,12 @@ final class Canvas: NSView {
         let valid = document.map { (try? platform.validate(width: $0.width, height: $0.height)) != nil } ?? false
         let color = valid ? placementColor(for: MovingPlatform.kind) : NSColor.systemRed
         color.withAlphaComponent(preview ? 0.4 : 0.9).setFill()
-        a.fill()
-        if !miniature { drawPlacementOutline(in: a, kind: MovingPlatform.kind) }
+        placementPath(in: a, kind: MovingPlatform.kind).fill()
+        drawPlacementOutline(in: a, kind: MovingPlatform.kind)
         color.withAlphaComponent(selected ? 0.12 : 0.05).setFill()
         a.union(b).fill()
         color.withAlphaComponent(selected ? 0.9 : 0.4).setStroke()
-        let outline = NSBezierPath(rect: b)
+        let outline = placementPath(in: b, kind: MovingPlatform.kind)
         outline.lineWidth = 1
         outline.stroke()
         let path = NSBezierPath()
@@ -495,6 +540,12 @@ final class Canvas: NSView {
         }
         path.lineWidth = selected ? 2 : 1
         path.stroke()
+        if selected && !preview {
+            let border = NSBezierPath(rect: a.insetBy(dx: -2, dy: -2))
+            NSColor.systemYellow.setStroke()
+            border.lineWidth = miniature ? 1 : 2
+            border.stroke()
+        }
         if selected && !miniature {
             let names = ["up": "上", "down": "下", "left": "左", "right": "右"]
             let label = "\(names[platform.direction] ?? "") \(platform.travel_cells)マス / \(platform.travel_cells * 32)px"
@@ -544,10 +595,10 @@ final class Minimap: NSView {
             let bounds = CGRect(x: frame.minX + CGFloat(cell.x) * step, y: frame.minY + CGFloat(cell.y) * step,
                                 width: step, height: step)
             let placement = Canvas.placementRect(in: bounds, kind: cell.kind)
-            placement.fill()
+            canvas.placementPath(in: placement, kind: cell.kind, tile: cell.tile).fill()
             canvas.drawPlacementOutline(in: placement, kind: cell.kind, tile: cell.tile)
         }
-        for platform in map.movingPlatforms {
+        for platform in canvas.platformsInDrawingOrder {
             canvas.drawPlatform(platform, origin: frame.origin, scale: scale,
                                 selected: platform.id == canvas.selectedPlatformID, preview: false, miniature: true)
         }
@@ -556,7 +607,7 @@ final class Minimap: NSView {
             let x = frame.minX + point[0] * scale
             let y = frame.minY + point[1] * scale
             let markerRect = CGRect(x: x - 2, y: y - 2, width: 4, height: 4)
-            markerRect.fill()
+            canvas.placementPath(in: markerRect, kind: path).fill()
             canvas.drawPlacementOutline(in: markerRect, kind: path)
         }
 

@@ -94,7 +94,7 @@ func verify() -> void:
 	check(not store._valid_visual(invalid), "replay rejects invalid thickness")
 	stage.free()
 	# Real Game setup: both saved stages put guide after backgrounds and before solids.
-	for scene in ["res://scenes/game.tscn", "res://scenes/game_time_attack.tscn", "res://scenes/game_stage_2.tscn", "res://scenes/game_stage_3.tscn"]:
+	for scene in ["res://scenes/game.tscn", "res://scenes/game_time_attack.tscn"]:
 		var game = load(scene).instantiate()
 		root.add_child(game)
 		game.set_physics_process(false)
@@ -107,14 +107,14 @@ func verify() -> void:
 			if saved.has_node(name): check(saved.get_node(name).get_index() < routes.get_index(), "guide in front of background")
 		check(routes.settings == game.settings and routes.width == 2.0, "Game binds actual shared settings")
 		var fixed_points: PackedVector2Array = routes.points.duplicate()
-		if game.time_attack:
+		if scene == "res://scenes/game_time_attack.tscn":
 			check(not fixed_points.is_empty(), "Time Attack saved routes visible")
-			game._physics_process(game.entrance.TOTAL_TIME)
-			for i in 5:
-				await physics_frame
-				game._physics_process(1.0/60.0)
-				await process_frame
-			check(routes.points == fixed_points, "Game updates do not move paths")
+		game._physics_process(game.entrance.TOTAL_TIME)
+		for i in 5:
+			await physics_frame
+			game._physics_process(1.0/60.0)
+			await process_frame
+		check(routes.points == fixed_points, "Game updates do not move paths")
 		game.pause_menu.open()
 		await create_timer(0.03,true).timeout
 		check(routes.points == fixed_points, "pause keeps path visible and fixed")

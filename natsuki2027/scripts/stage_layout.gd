@@ -82,8 +82,8 @@ const LIFTS := [
 ]
 
 # Six pickups per section: lower route, step/lift landings and optional high shelf.
-# Vector3i stores cell x/y and food scene ID from food_tileset.tres.
-const FOODS := [
+# Vector3i stores cell x/y and item scene ID from one_up_tileset.tres.
+const ONE_UPS := [
 	Vector3i(7, 19, 5), Vector3i(9, 17, 8), Vector3i(16, 15, 9),
 	Vector3i(18, 19, 6), Vector3i(23, 15, 4), Vector3i(16, 10, 3),
 	Vector3i(29, 21, 7), Vector3i(33, 15, 6), Vector3i(38, 17, 8),

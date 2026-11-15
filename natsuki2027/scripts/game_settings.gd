@@ -11,7 +11,7 @@ extends Resource
 @export_range(0.0, 5000.0) var gravity := 1100.0
 ## Downward speed limit (px/s), bypassed while gum is connected.
 @export_range(1.0, 5000.0) var max_fall_speed := 600.0
-## Initial/contact, coyote, gum-release, food-reward and ladder impulse speed (px/s).
+## Initial/contact, coyote, gum-release, item-reward and ladder impulse speed (px/s).
 @export_range(0.0, 2000.0) var kick_speed := 400.0
 ## Floor-departure kick grace (seconds); zero disables it.
 @export_range(0.0, 0.3, 0.01) var coyote_time := 0.2
@@ -35,9 +35,9 @@ extends Resource
 ## Vertical climbing speed (px/s); zero disables grabbing.
 @export_range(0.0, 600.0) var ladder_speed := 120.0
 
-@export_group("Food Collection")
-## Food pull speed toward the frozen player's hand (px/s).
-@export_range(1.0, 4000.0) var food_reel_speed := 600.0
+@export_group("OneUp Collection")
+## OneUp pull speed toward the frozen player's hand (px/s).
+@export_range(1.0, 4000.0) var one_up_reel_speed := 600.0
 
 @export_group("Player Double Jump")
 ## Impulse speed for the one-use airborne double jump only (px/s).
