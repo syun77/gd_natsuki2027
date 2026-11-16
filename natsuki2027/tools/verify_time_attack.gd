@@ -30,9 +30,77 @@ func verify() -> void:
 	check(startup == "res://scenes/title.tscn", "F5 starts title")
 	change_scene_to_file(startup)
 	await frames()
-	check(current_scene.find_children("*", "Button", true, false).size() == 2, "Title has exactly two menu items")
-	check(find_button(current_scene, "RELAY再生") != null, "Title has replay action")
-	find_button(current_scene, "START").pressed.emit()
+	check(current_scene.find_children("*", "Button", true, false).is_empty(), "Title starts through a physical goal")
+	var title = current_scene
+	check(title.get_node_or_null("Background") == null, "Title has no background image")
+	var rings: TileMapLayer = title.get_node("GumAnchors")
+	check(rings.get_used_cells().size() == 4 and rings.physics_quadrant_size == 1, "Title has four individual functional rings")
+	for cell in rings.get_used_cells():
+		var center := rings.to_global(rings.map_to_local(cell))
+		var hit: Dictionary = title.get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(center + Vector2(0, 64), center, 16))
+		check(not hit.is_empty() and hit.collider == rings and rings.get_cell_source_id(cell) == 2, "Title ring has attachment collision")
+		var player_hit: Dictionary = title.get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(center + Vector2(0, 30), center, 1))
+		check(player_hit.is_empty(), "Title ring does not block the player")
+	for x in [384.0, 704.0]:
+		var hit: Dictionary = title.get_world_2d().direct_space_state.intersect_ray(PhysicsRayQueryParameters2D.create(Vector2(x, 480), Vector2(x, 420), 1))
+		check(not hit.is_empty() and hit.position.is_equal_approx(Vector2(x, 448)), "Shelf artwork matches attachable collision")
+	var spawn: Vector2 = title.player.position
+	Input.action_press("move_right")
+	for i in 30:
+		await physics_frame
+		await process_frame
+	Input.action_release("move_right")
+	check(title.player.position.x > spawn.x + 50 and title.player.is_on_floor(), "Title player walks on physical terrain")
+	check(title.elapsed == 0 and not title.exit_door.started, "Practice has no countdown or automatic start")
+	Input.action_press("aim_down")
+	Input.action_press("gum_action")
+	await frames()
+	Input.action_release("gum_action")
+	Input.action_release("aim_down")
+	await frames()
+	check(title.gum.connected(), "Title uses the live gum attachment rules")
+	Input.action_press("jump")
+	await frames()
+	Input.action_release("jump")
+	check(not title.gum.connected(), "Title jump detaches gum")
+	for i in 60:
+		await physics_frame
+		await process_frame
+	Input.action_press("aim_up")
+	Input.action_press("gum_action")
+	await frames()
+	Input.action_release("gum_action")
+	Input.action_release("aim_up")
+	await frames()
+	check(title.gum.connected() and title.gum.target == rings, "Title upward shot attaches to the overhead ring")
+	check(title.gum.endpoint().is_equal_approx(Vector2(272, 528)), "Title ring uses center adhesion")
+	Input.action_press("jump")
+	await frames()
+	Input.action_release("jump")
+	for i in 90:
+		await physics_frame
+		await process_frame
+	# Reach the raised goal using real movement and one contact kick.
+	Input.action_press("move_right")
+	var kicked := false
+	for i in 300:
+		if title.exit_door.started:
+			break
+		if title.player.position.x >= 976 and not kicked:
+			Input.action_press("jump")
+			kicked = true
+		else:
+			Input.action_release("jump")
+		await physics_frame
+		await process_frame
+	Input.action_release("move_right")
+	Input.action_release("jump")
+	check(title.exit_door.started, "Entering title goal begins the door sequence")
+	for i in 240:
+		if current_scene != title:
+			break
+		await physics_frame
+		await process_frame
 	await frames()
 	var game = current_scene
 	game.set_physics_process(false)
@@ -69,10 +137,9 @@ func verify() -> void:
 	await frames()
 	check(current_scene.scene_file_path == "res://scenes/title.tscn" and not paused, "pause returns to title")
 	check(find_button(current_scene, "ステージを選ぶ") == null, "title contains no Stage Mode")
-	var start := find_button(current_scene, "START")
-	check(start != null and start.has_focus(), "Time Attack start has focus")
+	check(current_scene.player.visible, "Returned title has controllable player")
 	set_meta(&"checkpoint_respawn", {"scene": "res://scenes/game_time_attack.tscn", "score": 999})
-	start.pressed.emit()
+	current_scene._start()
 	await frames()
 	game = current_scene
 	game.set_physics_process(false)
@@ -152,7 +219,7 @@ func verify() -> void:
 	music.fade_tween.stop()
 	music.fade_tween.custom_step(0.5)
 	check(music.playing and music.volume_linear > 0.0 and music.volume_linear < 1.0, "Title transition fades continuing BGM")
-	find_button(current_scene, "START").pressed.emit()
+	current_scene._start()
 	await frames()
 	check(not AudioServer.is_bus_effect_enabled(music_bus, filter_index), "New run disables result filter")
 	check(current_scene.score == 0 and current_scene.note_count == 0 and current_scene.star_count == 0, "New run resets result counts")
@@ -223,6 +290,29 @@ func verify() -> void:
 	game = current_scene
 	game.set_physics_process(false)
 	check(not paused and game.elapsed == 0.0 and game.timer_gauge.value == 180.0, "Timeout retry resets three minutes")
+	var editable = load("res://scenes/title.tscn").instantiate()
+	editable.get_node("PlacementMarkers/PlayerSpawn").position = Vector2(192, 672)
+	editable.get_node("PlacementMarkers/Exit").position = Vector2(1152, 608)
+	var practice_checkpoint = load("res://scenes/props/checkpoint.tscn").instantiate()
+	practice_checkpoint.name = "PracticeCheckpoint"
+	practice_checkpoint.position = Vector2(192, 672)
+	editable.get_node("Checkpoints").add_child(practice_checkpoint)
+	practice_checkpoint.owner = editable
+	var lift = load("res://scenes/props/moving_platform.tscn").instantiate()
+	lift.name = "PracticeLift"
+	lift.configure({"id": "practice_lift", "x": 18, "y": 18, "direction": "up", "travel_cells": 2, "width_cells": 2, "speed": 64.0, "endpoint_wait": 0.0})
+	editable.get_node("MovingPlatforms").add_child(lift)
+	lift.owner = editable
+	var edited_title := PackedScene.new()
+	check(edited_title.pack(editable) == OK, "Edited title packs for gameplay")
+	editable.free()
+	change_scene_to_packed(edited_title)
+	await frames()
+	var practice = current_scene
+	check(absf(practice.player.position.x - 192.0) < 0.1, "Edited start marker owns actual title spawn")
+	check(practice.exit_door.position.is_equal_approx(Vector2(1152, 608)), "Edited goal marker owns actual door")
+	check(practice.get_node("Checkpoints/PracticeCheckpoint").activated, "Transferred practice checkpoint activates")
+	check(practice.get_node("MovingPlatforms/PracticeLift").position.y < 576.0, "Transferred title lift moves on physics ticks")
 	DirAccess.remove_absolute("/tmp/verify-time-attack-replay.dat")
 	if failures == 0:
 		print("PASS: Time Attack startup, timer, death state, title, clean start and mouse-only sequential results")

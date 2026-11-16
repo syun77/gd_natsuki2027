@@ -8,7 +8,10 @@ func _initialize() -> void:
 
 func verify() -> void:
 	var plugin := EditorPlugin.new()
+	await verify_title(plugin)
 	for path in Exchange.WIDTHS:
+		if path == "res://scenes/title.tscn":
+			continue
 		EditorInterface.open_scene_from_path(path)
 		for i in 10:
 			await process_frame
@@ -169,3 +172,64 @@ func verify() -> void:
 		print("MAPEDIT PASS ", path)
 	plugin.free()
 	quit()
+
+func verify_title(plugin: EditorPlugin) -> void:
+	EditorInterface.open_scene_from_path("res://scenes/title.tscn")
+	for i in 10:
+		await process_frame
+	var stage := EditorInterface.get_edited_scene_root()
+	assert(stage.scene_file_path == "res://scenes/title.tscn")
+	var before := Exchange.snapshot(stage)
+	assert(before.width == 40 and before.height == 24)
+	assert(before.layers.keys().size() == 4)
+	var data := before.duplicate(true)
+	data.base = Exchange.token(before)
+	data.source = {"cells": before.cells, "markers": before.markers, "movingPlatforms": before.movingPlatforms}
+	assert(Exchange.validate(stage, before, JSON.parse_string(JSON.stringify(data))) == "")
+	var noop := Exchange.diff(before, data)
+	assert(not noop.terrain_changed and noop.next.is_empty() and noop.markers.is_empty())
+	FileAccess.open("/tmp/mapedit-title.json", FileAccess.WRITE).store_string(JSON.stringify(data))
+	var invalid := data.duplicate(true)
+	invalid.cells.append({"kind": "TerrainTiles", "x": 40, "y": 10, "tile": [0, 9, 3, 0]})
+	assert(Exchange.validate(stage, before, invalid).contains("outside"))
+	data.cells = data.cells.filter(func(cell: Dictionary) -> bool: return not (cell.kind == "TerrainTiles" and cell.x == 9 and cell.y == 13))
+	data.cells.append({"kind": "TerrainTiles", "x": 6, "y": 18, "tile": [0, 9, 3, 0]})
+	data.cells.append({"kind": "GumAnchors", "x": 6, "y": 15, "tile": [2, 0, 0, 0]})
+	data.cells.append({"kind": "OneWayPlatforms", "x": 10, "y": 18, "tile": [1, 3, 0, 0]})
+	data.markers["PlacementMarkers/PlayerSpawn"] = [192.0, 672.0]
+	data.markers["PlacementMarkers/Exit"] = [1152.0, 608.0]
+	data.markers["Checkpoints/CheckpointMapEdit_1"] = [640.0, 672.0]
+	data.movingPlatforms.append({"id": "title_lift", "x": 18, "y": 18, "direction": "up", "travel_cells": 2, "width_cells": 2, "speed": 64.0, "endpoint_wait": 0.0})
+	assert(Exchange.validate(stage, before, data) == "")
+	var changes := Exchange.diff(before, data)
+	var history := plugin.get_undo_redo()
+	var old_shapes := stage.get_node("Terrain").get_children()
+	var label := stage.get_node("TitleLabel")
+	Exchange.commit(history, stage, changes)
+	assert(Exchange.snapshot(stage).markers == data.markers)
+	assert(Exchange.snapshot(stage).cells.size() == data.cells.size())
+	assert(stage.get_node("TerrainTiles").get_cell_source_id(Vector2i(9, 13)) == -1)
+	assert(stage.get_node("GumAnchors").get_cell_source_id(Vector2i(6, 15)) == 2)
+	var covered := {}
+	for shape in stage.get_node("Terrain").get_children():
+		var size: Vector2 = shape.shape.size
+		var origin := Vector2i((shape.position - size / 2) / 32)
+		for y in int(size.y / 32):
+			for x in int(size.x / 32):
+				covered[origin + Vector2i(x, y)] = true
+	assert(covered == changes.terrain)
+	var packed := PackedScene.new()
+	assert(packed.pack(stage) == OK)
+	var copy := packed.instantiate()
+	assert(copy.get_node("PlacementMarkers/PlayerSpawn").position == Vector2(192, 672))
+	assert(copy.has_node("Checkpoints/CheckpointMapEdit_1"))
+	assert(copy.get_node("MovingPlatforms").get_child_count() == 1)
+	copy.free()
+	assert(stage.get_node("TitleLabel") == label)
+	var undo := history.get_history_undo_redo(history.get_object_history_id(stage))
+	assert(undo.undo())
+	assert(Exchange.snapshot(stage) == before and stage.get_node("Terrain").get_children() == old_shapes)
+	assert(undo.redo())
+	assert(Exchange.snapshot(stage).markers == data.markers)
+	assert(undo.undo())
+	print("MAPEDIT PASS res://scenes/title.tscn copy/transfer/terrain/markers/platforms/pack/undo/redo")

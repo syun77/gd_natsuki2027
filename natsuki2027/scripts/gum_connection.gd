@@ -6,6 +6,7 @@ signal shot_advanced(start: Vector2, end: Vector2)
 signal adhesion_ended
 
 const OneUp = preload("res://scripts/one_up_collectible.gd")
+const TitleLetter = preload("res://scripts/title_letter.gd")
 const Settings = preload("res://scripts/game_settings.gd")
 const RIGID_CONTACT_TOLERANCE := 2.0
 const AIM_TILE_BLINK_HZ := 3.0
@@ -215,9 +216,10 @@ func _step_outbound(delta: float) -> void:
 		detach("BLOCKED PATH")
 		return
 	if not hit.is_empty():
-		if preload("res://scripts/breakable_terrain.gd").destroy_hit(hit):
+		var letter_destroyed: bool = hit.collider is TitleLetter and hit.collider.break_from_gum()
+		if letter_destroyed or preload("res://scripts/breakable_terrain.gd").destroy_hit(hit):
 			SoundEffects.play(&"crash")
-			detach("BRICK DESTROYED")
+			detach("LETTER DESTROYED" if letter_destroyed else "BRICK DESTROYED")
 		elif attachable(hit):
 			_attach_hit(hit)
 		else:

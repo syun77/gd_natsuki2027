@@ -108,3 +108,18 @@ for shape in PlacementShape.allCases {
     if shape != .square { assert(!shape.path(in: rect).contains(CGPoint(x: 11, y: 21))) }
 }
 print("Placement shapes PASS")
+
+var titleMap = MapDocument(version: 2, stage: "res://scenes/title.tscn", width: 40,
+                           height: 24, tileSize: 32, base: String(repeating: "0", count: 64),
+                           layers: map.layers, cells: [],
+                           markers: ["PlacementMarkers/PlayerSpawn": [160,672], "PlacementMarkers/Exit": [1120,608]],
+                           movingPlatforms: [], source: nil)
+if let path = CommandLine.arguments.dropFirst().first {
+    titleMap = try JSONDecoder().decode(MapDocument.self, from: Data(contentsOf: URL(fileURLWithPath: path)))
+}
+try titleMap.validate()
+assert(titleMap.stage == "res://scenes/title.tscn" && titleMap.width == 40)
+assert(titleMap.layers["TerrainTiles"] != nil && titleMap.markers["PlacementMarkers/PlayerSpawn"] == [160, 672])
+titleMap.cells.append(Placement(kind: "TerrainTiles", x: 40, y: 10, tile: [0, 9, 3, 0]))
+rejects { try titleMap.validate() }
+print("PASS: title scene clipboard JSON and 40-cell editing bounds")

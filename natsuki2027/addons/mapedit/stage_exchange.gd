@@ -3,6 +3,7 @@ extends RefCounted
 
 const LAYERS := ["TerrainTiles", "OneWayPlatforms", "GumAnchors", "GumPassBarriers", "Spikes", "GumBoxes", "Foods", "Baguettes", "MusicNotes"]
 const WIDTHS := {
+	"res://scenes/title.tscn": 40,
 	"res://scenes/stages/time_attack.tscn": 692,
 	"res://scenes/stages/theater_stage.tscn": 160,
 }
@@ -31,7 +32,7 @@ const HEIGHT := 24
 
 static func snapshot_error(stage: Node) -> String:
 	if stage == null or not WIDTHS.has(stage.scene_file_path):
-		return "time_attack.tscn または theater_stage.tscn を Godot で直接開いてください。"
+		return "title.tscn、time_attack.tscn または theater_stage.tscn を Godot で直接開いてください。"
 	for path in ["Terrain", "Checkpoints", "MovingPlatforms", "TerrainTiles", "PlacementMarkers/PlayerSpawn", "PlacementMarkers/Exit"]:
 		if not stage.has_node(NodePath(path)):
 			return "%s に必須ノード %s がありません。ノード名を確認してください。" % [stage.scene_file_path.get_file(), path]

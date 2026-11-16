@@ -1,3 +1,49 @@
+## 不要なタイトル画像の削除
+
+- Goal/status: 削除・参照整理完了。
+- Completed/decisions: runtime未参照の生成タイトル画像6個（背景原本/runtime複製/人物なし/背景・効果・ロゴ分離）とruntime .importを削除。空フォルダも除去。外見仕様が参照するimages/菜月さん/タイトル画面.pngは保持。
+- Files: images/title/とassets/title/の画像、specs/title-screen.md、AGENTS/WORKLOG。
+- Verification/refactoring: 削除前rgでruntime参照なしを確認。仕様/AGENTSの不要素材記述を除去。削減9231827bytes。削除後runtime参照0件、Godot4.5.1でF5相当のタイトル起動2frames終了0（既存証明書警告のみ）、git diff --check PASS。Next action: 通常のF5プレイを継続。
+- Blockers: なし。
+
+## タイトル文字のガム破壊
+
+- Goal/status: 実装・検証完了。タイトルの各文字にガムが当たるとその文字が壊れる。
+- Completed/decisions: 既存Label位置/文字/fontを維持しruntimeのみ一文字ずつgum-only StaticBody2Dへ分割。空白は対象外。実tip sweep命中だけで一字削除、既存crash音/返却を使用、白い破片粒子0.45s。R/再入場で復元。地形/MapEdit配置/ユーザー編集済みタイトルmapは維持。
+- Files: scripts/breakable_title.gd・title_letter.gd（各UID）・gum_connection.gd、title.tscn、verify_breakable_terrain.gd、specs/title-screen.md、AGENTS/WORKLOG。新規tool実装なし。
+- Verification checkpoint: verify_breakable_terrain PASS/終了0。全非空白字への実ray・先端到達前不変・当たった字のみ消滅・プレイヤーmaskで非衝突・二重破壊拒否・返却force0・破片終了・新scene全字復元を確認。既存brick破壊もPASS、MapEdit snapshot PASS。
+- Refactoring/final verification: 破壊ガード/非表示/削除と粒子構築を分離、gumの破壊SE/返却分岐を共用。最終verify_breakable_terrain再実行PASS、verify_gum/controls/mapedit_snapshot全PASS・終了0。editor import終了0/UID生成、SCRIPT/Parse ERRORなし。既存sandbox証明書/Mono socket/editor設定保存/終了resource警告のみ。仕様/AGENTS同期、git diff --check PASS。
+- Blockers/limits: なし。native描画目視は未実施。既存手編集済み地形/リング/移動床/タイトルの文言と位置は保持。
+- Next action: F5でタイトル上部へ移動し、文字へガムを撃って破壊・R復元の見え方を確認。
+
+## タイトルのMapEdit往復対応
+
+- Goal/status: 実装・検証完了。title.tscnをMapEditでコピー・転送可能。
+- Completed/decisions: Title直下へ編集用ノードを統一、TerrainTilesを32pxグリッド40×24で作成、共有TileSet/矩形衝突へ変換。Godot/Swift両方にtitle識別子追加。start markerを実spawnへ反映。棚はy416〜448へグリッド整列、ゴール段差x1024〜1248。runtimeはルートのExitと移動床/練習checkpointを扱う。
+- Files: title.tscn・title/game.gd・stage_exchange.gd・MapDocument.swift・verify_mapedit/time_attack.gd・Swift tests・MapEdit README・specs/mapedit/title-screen・AGENTS/WORKLOG。既存差分維持。
+- Verification: verify_mapedit（headless editor）でtitle/TimeAttack/theaterのcommit/Undo/Redo PASS、snapshot suite PASS。Swift testsでGodot実出力JSONのdecode/validate・40幅範囲検証PASS、AppKit本体compile終了0。title実移動/リング/ゴールと本編suiteも初回PASS。既存sandbox証明書/Mono IDE socket/editor設定保存/終了resource警告のみ。指定.agentsの両手順書は不在。
+- Completed review: terrainをTileMapへ一本化、編集対象はroot直下に統一、exit初期化はstage引数必須で共用。README/specs/AGENTS同期、git diff --check PASS。
+- Final verification: verify_time_attack再実行PASS/終了0。編集後PackedSceneを実行し開始位置192px/ゴール1152px、追加移動床の固定更新・練習checkpoint接触有効化まで確認。
+- Blockers/limits: なし。実GUIのクリップボード/TCP送信は未実施（同じplugin経路のvalidate/commitをeditorで検証）。Next action: GodotプロジェクトとMapEditを開き直し、title.tscnを直接開く→コピー→⌘V→編集→Godotに送る→確認→シーン保存。
+
+## タイトルの背景撤去と接着地形・リング
+
+- Goal/status: 実装・検証完了。背景画像を外し、接着できる床・足場・リングを配置。
+- Completed/decisions: 既存連続床/壁/ゴール段差維持、192×24px棚2個（中心384/432・704/432）と本編共有source2リング4個（セル8/16・16/16・24/16・29/16）を保存シーンに追加。画像背景を除去、project共通teal背景と文字タイトル。リングはquadrant1、プレイヤー非衝突。素材ファイルは保持、generator未実行。
+- Files: scenes/title.tscn、tools/verify_time_attack.gd、specs/title-screen.md、AGENTS/WORKLOG。既存作業差分は維持。
+- Verification/refactoring: Godot4.5.1 verify_time_attack PASS/終了0。背景nodeなし、4リングのphysics ray/プレイヤー用terrain ray不在、2棚下面と描画矩形一致、実X入力でリング中心接着/Z解除、床接着、実移動/ジャンプ→ゴール→新規本編/タイトル帰還を確認。既存証明書/終了resource警告のみ。最終reviewでリングは本編TileSet共用・配置はsceneへ集約、追加runtimeコード不要、全追加矩形と衝突の一致を確認。git diff --check PASS。
+- Blockers/limits: なし。native描画目視は未実施。
+- Next action: F5でタイトルの配置・視認性・ガム操作感を確認。
+
+## 操作可能なタイトルステージ
+
+- Goal/status: 実装・検証完了。タイトルの菜月さんを操作して右ゴールに入ると本編開始。
+- Completed/decisions: Game._step_playerで接続検証→入力→ガム→Player.simulateを共用。1280×768、連続床/両端壁/右64px段差/ドア。タイトルは時計/残機消費/得点/リプレイ/ポーズなし、Rやり直し。共有VFX/ドア演出/閉扉SE待ち。開始で復帰meta消去、新規Time Attack。既存背景再利用、帰還BGMフェード維持。
+- Files: scripts/game.gd・title.gd、scenes/title.tscn、tools/verify_time_attack.gd・verify_replay.gd、specs/title-screen.md・time-attack-courses.md・replay.md、AGENTS/WORKLOG。
+- Verification/refactoring: Godot4.5.1 verify_time_attack / verify_replay / verify_controls PASS・終了0。タイトルで実移動/ガム接着/Z解除/ジャンプ→ゴールまでteleportなし/ドア完了→本編/帰還/復帰meta消去と本編操作回帰を確認。最終reviewで入力物理を共通stepへ集約し、復帰座標はscene初期位置から取得。git diff --check PASS。既存証明書/終了resource警告のみ。
+- Blockers/limits: native previewはexit134で取得不可、描画の目視確認は未実施。.agents/ツール作成.mdは存在しない（新規ツール作成なし）。既存未追跡pixelfx/と作業中に外部変更されたdefault_bus_layout.tres（gain既定値の省略）は変更/巻戻しせず保持。
+- Next action: F5で見た目と操作感を確認。
+
 ## 観葉植物の接地位置修正
 
 - Goal/status: 実装・検証完了。鉢底の透明余白による7〜8pxの浮きを補正。

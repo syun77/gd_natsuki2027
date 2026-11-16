@@ -240,15 +240,11 @@ func verify_disabled() -> void:
 	check(store.latest.is_empty(), "Disabled replay does not read saved data")
 	change_scene_to_file("res://scenes/title.tscn")
 	await wait_frames()
-	var replay_button: Button = current_scene.get_node("Artwork/Menu/Replay")
-	check(replay_button.disabled and replay_button.focus_mode == Control.FOCUS_NONE and current_scene.start_button.has_focus(), "Title replay disabled; START focused")
+	check(current_scene.find_children("*", "Button", true, false).is_empty(), "Playable title has no replay menu")
 	store.latest = {"frames": []}
 	store.availability_changed.emit()
-	check(not store.available() and replay_button.disabled, "Even in-memory data cannot enable replay")
-	replay_button.pressed.emit()
-	await wait_frames()
-	check(current_scene.scene_file_path == "res://scenes/title.tscn", "Forced title replay signal cannot launch playback")
-	current_scene.start_button.pressed.emit()
+	check(not store.available(), "In-memory data cannot enable replay")
+	current_scene._start()
 	await wait_frames()
 	var game = current_scene
 	check(game.pause_menu.buttons[3].disabled and game.pause_menu.buttons[3].focus_mode == Control.FOCUS_NONE, "Pause replay action disabled without focus")

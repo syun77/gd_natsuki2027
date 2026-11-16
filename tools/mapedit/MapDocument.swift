@@ -159,7 +159,8 @@ struct MapDocument: Codable {
     }
 
     func validate() throws {
-        let widths = ["res://scenes/stages/theater_stage.tscn": 160,
+        let widths = ["res://scenes/title.tscn": 40,
+                      "res://scenes/stages/theater_stage.tscn": 160,
                       "res://scenes/stages/time_attack.tscn": 692]
         guard version == 2, widths[stage] == width, height == 24, tileSize == 32,
               base.count == 64, base.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }),

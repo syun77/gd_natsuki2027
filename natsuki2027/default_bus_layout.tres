@@ -6,7 +6,6 @@ threshold = -24.0
 ratio = 8.0
 attack_us = 10000.0
 release_ms = 300.0
-gain = 0.0
 sidechain = &"DUCKING"
 
 [sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_results"]

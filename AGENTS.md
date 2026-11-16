@@ -82,7 +82,6 @@
 - Store all project specification documents in the repository-root `specs/` directory. Create or update specifications there rather than placing them beside source files or in ad hoc documentation locations.
 - Keep specifications aligned with the current implementation whenever behavior or interfaces change.
 
-
 - Player feet are the local origin; `scenes/characters/player.tscn` uses normalized 256 px cells at 0.3125 scale, a fixed 20 × 52 px capsule and sprite y=-32.5. `tools/verify_player.gd` checks movement/animation and collision momentum using the same headless invocation as the map check.
 
 - Physical arrow bindings in project.godot are Left=4194319 and Right=4194321. `tools/verify_player.gd` checks physical-key events as well as action-driven movement; action_press alone bypasses key mappings.
@@ -92,11 +91,9 @@
 - Shared runtime tuning lives in `resources/game_settings.tres` (schema: `scripts/game_settings.gd`), grouped for the Inspector. Game.Settings is assigned in game.tscn and passed to Player/Gum at ready; standalone Player has the same default asset. Aim Guide colors include alpha (0.9) and line width (2 px). See specs/game-settings.md.
 
 
-
 - Static corner wrapping is implemented in `gum_path.gd` / `gum_terrain_geometry.gd`; see specs/gum-wrapping.md. Collision-derived union corners (59 in saved stage), ordered pivots, <=1px endpoint sweep, total-path spring/length limit and terrain reactions. Dynamic obstacle wrapping is unsupported and releases explicitly. Run tools/verify_gum_path.gd alongside gum/controls/player/map suites.
 
 - Wrapping geometry uses edge-relative convex half-plane containment: Geometry2D.is_point_in_polygon misclassified near-edge points at section-04 coordinates, dropping valid shelf corners. Keep translated-shape, large-coordinate shelf and saved-map beam pivot regressions in verify_gum_path.gd.
-
 
 
 - Normal locomotion input velocity stays horizontal, including after collision projection; ladder climbing explicitly supplies vertical control; external velocity retains physical sliding/momentum. verify_player.gd covers both high-speed corner directions on actual physics ticks and stable landing.
@@ -123,9 +120,7 @@
 - Settings schema kick_speed is400 (current saved tuning400); other documented baseline values: coyote_time0.2, maximum_length400, camera_long_gum_zoom1.0. Keep specs/game-settings.md default descriptions aligned.
 
 
-
 - Floor and coyote kicks add world-up velocity; ceiling retains downward contact kicks; walls never grant kicks (wall contact permits an available coyote/double jump). Contact normals still own collision/friction, never floor launch direction. verify_player.gd includes real left/right tilted corner floor and delayed-coyote launches.
-
 
 
 - Manual gum tuning: extension180 px/s, shortening90 px/s, break margin240 px (manual cap160 at max400). Down immediately relaxes without clearing tension; existing above-cap natural length never snaps shorter on extension. Down wins over X, Up+Down relaxes/holds; X attached always consumes its release. Ceiling input/physics fixtures duplicate settings with max900 explicitly; saved gameplay settings stay400.
@@ -153,7 +148,6 @@
 - Debug UI uses project-wide resources/debug_theme.tres: PixelMplus12 Regular24px, antialiasing/subpixel positioning OFF and oversampling1. Stage generator labels inherit it; see specs/debug-text.md. Console fonts are independent.
 
 - Compression terrain queries exclude nearby movable rigid RIDs in body_test_motion (safe_margin+0.25, max8 iterations); normal support queries do not toggle live masks. Only actual terrain correction uses a terrain-only support refresh. No rigid transform/gum edits. verify_compression.gd covers pressure/mass/rotation/gum/escape; COMPRESSION_RECOVERED is throttled30ticks.
-
 
 - Non-support rigid contacts use a0.75px skin and8 sequential virtual-velocity impulse iterations. Floor normals use real move_and_slide support without skin separation/restitution; removed player normal momentum is transferred to the supporting body. Commit all contact impulses after player movement so automatic platform carry sees only pre-reaction physical velocities. Keep default platform layers; verify_compression.gd -- --support-only covers center/both edges, kicks and horizontally moving/ascending rigid platforms.
 
@@ -227,11 +221,9 @@
 
 - Spike artwork: `images/tilesets/restaurant_spikes.png` is32×32 transparent RGBA (omnidirectional steel/ivory spikes/coral hub; no safe-looking flat base), nearest filtering; matching `_source.png` is generated original. Runtime copy/scene TileSet live under assets/hazards; paint source0/scene0 on Spikes (20 authored cells), generator uses Layout.SPIKES. Non-solid Area bit64; Game sweeps Player capsule before/after simulate and shares idempotent restart() with R/fall. Run tools/verify_spikes.gd; see specs/spike-tile-assets.md.
 
-
 - Ladder climb animation: `images/normalized/natsuki_climb.png` and matching runtime copy,512×256/two256px cells,4px pixel clusters/baseline232. Back-facing alternating left-hand/right-foot then right-hand/left-foot; climb_animations.tres6fps, neutral pauses and no facing flip. Generated sheet source is images/natsuki_climb_sheet_source.png.
 
 - Checkpoints: reusable feet-origin scenes/props/checkpoint.tscn under TheaterStage/Checkpoints; stage_layout.gd CHECKPOINTS owns5 placements. Player-only non-solid trigger;8-frame4x2 sign (restaurant_checkpoint_flip_source.png), inactive muted-coral flag → active mint check, stops on check without rebound; Sprite2D scale0.13 preserves approx58px size. Pit/spike deaths call Game.restart(true), restoring last touched node via consumed scene-scoped SceneTree metadata; manual R/menu Retry restart clears it. Reload resets world/1UP/gum/velocity. See specs/checkpoints.md; run tools/verify_checkpoints.gd with spikes/controls/map suites.
-
 
 - Background decorations: `restaurant_background_decor.png` in images/tilesets and runtime assets/tilesets is384×384 RGBA/16 stamps of96px. Dedicated background_decor_tileset.tres uses32px grid/source0/3×3-cell stamps at atlas coordinates0/3/6/9; BackgroundDecor is collision-free behind terrain. Layout.BACKGROUND_DECOR owns theater_stage's42 placements; shared background_decor.gd builds layer. tools/install_background_decor.gd updates only decor without full map regeneration. See specs/restaurant-background-decor.md and verify_background_decor.gd (-- --render for native capture).
 
@@ -272,11 +264,9 @@
 
 - 1UP availability sparkles: PixelFX source images/effects/one-up-idle.mjs, regenerate with tools/build_one_up_idle_effect.mjs;96px cells/60frames/30fps/2s. one_up_collectible owns one_up_idle_effect child with position-based phase; being_pulled setter immediately hides/restores it, collection hides before success burst. See specs/one-up-idle-effect.md; verify_one_up_collect_effect.gd covers lifecycle.
 
-
 - Hanging-only waypoint pulley: scenes/props/pulley_trolley.tscn + scripts/pulley_trolley.gd; Game at(944,384), F5 only. Bind existing Gum.adhesion_started: each fresh hit requests one segment, moving hits ignored/no queue, arrival waits, detach does not stop motor. Export local2D route_points(default80/184/288 on X), LOOP or PING_PONG(default), speed140/force18000. Force servo + per-segment native GrooveJoint2D retain real reciprocal gum physics; no tween/velocity overwrite. Carriage bit16/mask0, only pad(0,42) collides with gum; player/props pass through. Single-wheel PNG/atlas, generated dark route rails. See specs/pulley-trolley.md; verify_pulley_trolley.gd.
 
 - Gameplay HUD has no persistent control-help text; keep control documentation in specs/keyboard-controls.md. HUD/Status remains for runtime gum state.
-
 
 - Stage-start entrance source artwork: `images/tilesets/restaurant_stage_entrance_source.png` (transparent cream/mint doorway with coral canopy and arrow sign). This original is retained; the ENTRANCE animation variant supplies the normalized runtime sprite, separate from the terrain TileSet.
 
@@ -427,7 +417,6 @@
 
 - Natsuki run holds hat side brim with near/right hand throughout8frames; far/left arm swings. Source images/natsuki_run_source.png; normalized/runtime natsuki_run.png identical1024×512. Shared55%nearest,feet232 except flight frames3/7 at224; existing playback/physics unchanged.
 
-
 - Runtime character audit2026-11-15 complete: all13PNG assets depict Natsuki, including pull/hang/hang_angles, normalized entrance/exit, and standalone test.tscn portrait. Character image filenames use natsuki names. Original Teto references outside runtime are retained. Left-facing rendering still mirrors artwork.
 
 - Godot project display name and project directory are `natsuki2027`; open `natsuki2027/project.godot`. Repository root remains gd_natsuki2027. Use the new directory for CLI --path and asset-tool destinations.
@@ -435,7 +424,6 @@
 - Git ignores Godot `*.import` sidecar files as well as `.import/` and `.godot/` directories via the repository-root .gitignore.
 
 - Character image prefixes and runtime folder use natsuki: assets/characters/natsuki/ for gum/climb, natsuki_*.png for all source/normalized/runtime variants, natsuki.png for static portraits. Renames preserve PNG bytes and import UIDs.
-
 
 - Hat-holding hand preference: anatomical left/right is flexible; prefer the camera-near hand, keep shoulder/elbow/wrist continuity and clear occlusion of the far arm. Do not swap arms within an animation. Jump source near arm holds hat; frame0 far arm extends back with hidden root, frame1 free arm bends forward slightly ahead of frame2; current normal gameplay selects2/3/5 and landing6, not0/1. See natsuki-character-design.md.
 
@@ -473,7 +461,7 @@
 
 - MapEdit表示形状はPlacementStyle.shapeで種別ごとに保存（四角/丸/三角形、既定四角）。Canvas.placementPathを塗り・縁取り・preview/minimap/移動床で共有し、他のstyle編集でもshapeを保持する。ゲーム交換/衝突には影響しない。
 
-- Time Attack is the sole runtime ruleset: Game always times/saves results; no mode flag/catalog/Stage Mode courses. F5 opens title.tscn; START opens game_time_attack.tscn; pause and replay return to title.tscn. game.tscn/theater_stage are shared physics/editor fixtures, not a selectable mode. Base-scene props are fixtures; replacing stage_scene discards them.
+- Time Attack is the sole runtime ruleset: Game always times/saves results; no mode flag/catalog/Stage Mode courses. F5 opens playable title.tscn; its goal opens game_time_attack.tscn; pause and replay return to title.tscn. game.tscn/theater_stage are shared physics/editor fixtures, not a selectable mode. Base-scene props are fixtures; replacing stage_scene discards them.
 
 - 1UP artwork proposal lives in specs/one-up-item-art.md: 32px transparent white summer hat/navy band/pale-yellow ribbon plus readable 1UP text. Transparent trial source: images/items/one_up_hat_trial_source.png. Final32px images/items/one_up_hat.png and identical runtime copy are integrated with lives.
 
@@ -505,16 +493,12 @@
 
 - Game._present_results shares frozen result data/UI for clear, last-life GAME OVER and TIME UP. Only clear awards/displays bonuses and best; failures keep item score and completed replay records unchanged. All results use sequential reveal, mouse-only title button, paused world/BGM continuing. verify_lives/time_attack cover both failure endings.
 
-
 - Game death_voice stores SoundEffects.play(dead) returned AudioStreamPlayer and processes during pause. Game-over waits its actual finished signal (already ended/no voice => immediate); timeout has no death SE or fixed delay. verify_lives awaits real audio completion.
 
 - Controller InputMap is standard any-device Joypad, not DS4-specific: buttons0/2/6 map to jump/gum/pause (Xbox A/X/Menu). Windows controller hardware remains unverified; results UI is intentionally mouse-only, so gameplay pad support does not imply full pad-only navigation.
 
-- Title screen uses images/title/title_background.png and identical assets/title copy (original reference preserved). title.tscn owns exactly START/RELAY再生 Buttons; title.gd scales artwork+menu on1672×941 canvas. F5 opens title; START clears checkpoint metadata. Replay is currently always disabled by ReplayStore.ENABLED=false. Background uses linear filtering independently of gameplay nearest filtering. See specs/title-screen.md.
+- Title is a safe playable1280×768 stage: title.tscn owns root-level terrain/player/gum/VFX; title.gd extends Game and reuses _step_player fixed-step controls, without timer/lives/record/BGM start. Reach the raised right door to start clean Time Attack after shared door animation/audio; R reloads title. No START/replay Buttons. Title has no background image (shared teal clear color), two192×32px attachable shelves and four functional source2 rings at cells(8,16)/(16,16)/(24,16)/(29,16), using shared TileSet and quadrant1. Edit title.tscn directly. See specs/title-screen.md; verify_time_attack checks a real walk/jump route and goal entry.
 
-- Character-free title compositing plate: `images/title/title_background_no_character.png` (1672×941); removes right character/hand, lower-left portrait and shadow. Intended for later overlay of 菜月さん3.png; current runtime background remains separate.
-
-- Separated title art: `images/title/layers/title_{background,effects,logo}.png`; yellow background → transparent beam/swooshes → transparent logo incl. orbit/stars. Align top-left at native size (background/effects1672×941, logo1671×941); runtime integration is separate.
 
 - When replay is enabled, startup replay loading must stay off the main thread: a real40MB compressed replay blocked title rendering before scene ready. ReplayStore Thread decodes/validates, main _process adopts and emits availability_changed; title/pause update via node-bound methods (global-signal lambdas can outlive freed buttons). Store ALWAYS processing needs explicit paused guard for physics recording. Steam editor is Godot4.7.2 at ~/Library/Application Support/Steam/steamapps/common/Godot Engine/Godot.app; /Applications/Godot_mono remains4.5.1.
 
@@ -535,3 +519,7 @@
 - Main Time Attack scenery is authored directly in scenes/stages/time_attack.tscn/BackgroundDecor:42 stamps (18 windows/8 grounded plants/16 paintings), z=-5, collision disabled. Use existing background_decor_tileset.tres; do not apply the theater-only decor installer/layout to this hand-edited map. Preserve gameplay layers/shapes/markers when decorating.
 
 - Floor plant TileData.texture_origin offsets in background_decor_tileset.tres compensate transparent bottom padding: large-leaf(0,-8), ficus/fern(0,-7). Negative origin moves artwork down; for a plant at cell y, visible bottom aligns to floor (y+2)*32. Hanging plant is unshifted.
+
+- MapEdit supports title.tscn directly (40×24,32px) in Godot Exchange.WIDTHS and Swift MapDocument validation. Editable nodes live at scene root; TerrainTiles owns visible occupancy and Terrain owns derived rectangles. No Polygon2D terrain. PlayerSpawn/Exit markers drive actual title spawn/door. Four tile layers (terrain/one-way/ring/barrier), moving platforms and practice checkpoints; no collectible/spike layers. Restart MapEdit and recopy title after updates. verify_mapedit covers title commit/pack/Undo/Redo; its /tmp/mapedit-title.json can be passed to Swift tests for real clipboard decoding.
+
+- TitleLabel uses breakable_title.gd: editor Label remains the text/font/position authority; runtime creates one title_letter.gd gum-only layer16/mask0 body per non-space character at measured font advances. Actual outbound tip destroys one letter, plays crash and returns with no adhesion force; preview does not destroy. Cosmetic particles expire0.45s. R/reentry restores all; MapEdit excludes letters. verify_breakable_terrain.gd also tests title character hits/neighbor preservation/pass-through/reset.

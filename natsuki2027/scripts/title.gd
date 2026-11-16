@@ -1,33 +1,72 @@
-extends Control
-## Artwork and menu share one reference canvas so cropping never separates them.
-const ART_SIZE := Vector2(1672, 941)
+extends "res://scripts/game.gd"
+## A safe practice stage; the shared player step owns all action rules.
 const GAME_SCENE := "res://scenes/game_time_attack.tscn"
-
-@onready var artwork: Control = $Artwork
-@onready var start_button: Button = $Artwork/Menu/Start
-@onready var replay_button: Button = $Artwork/Menu/Replay
+var spawn_position: Vector2
 
 func _ready() -> void:
-	resized.connect(_fit_artwork)
-	_fit_artwork()
-	start_button.pressed.connect(_start)
-	replay_button.pressed.connect(func(): ReplayStore.play(scene_file_path))
-	ReplayStore.availability_changed.connect(_update_replay)
-	_update_replay()
-	start_button.grab_focus()
+	spawn_position = $PlacementMarkers/PlayerSpawn.position
+	player.position = spawn_position
+	player.settings = settings
+	gum.settings = settings
+	gum.player = player
+	player.gum = gum
+	$GumAttachmentEffect.bind(gum)
+	$GumShotParticles.bind(gum, settings)
+	$GumHitParticles.bind(gum, settings)
+	$GumHitShockwave.bind(gum, settings)
+	$LandingDustEffect.bind(player)
+	_setup_exit(self)
+	for checkpoint in $Checkpoints.get_children():
+		checkpoint.reached.connect(_on_checkpoint_reached)
 
-func _fit_artwork() -> void:
-	var factor := maxf(size.x / ART_SIZE.x, size.y / ART_SIZE.y)
-	artwork.scale = Vector2.ONE * factor
-	artwork.position = (size - ART_SIZE * factor) * 0.5
+func _exit_tree() -> void:
+	pass
+
+func _physics_process(delta: float) -> void:
+	if restarting:
+		return
+	if Input.is_action_just_pressed("restart"):
+		get_tree().call_deferred("reload_current_scene")
+		restarting = true
+		return
+	if exit_door.active:
+		exit_door.step(delta)
+		if not exit_door.active:
+			_start()
+		return
+	for platform in $MovingPlatforms.get_children():
+		if platform is MovingPlatform:
+			platform.step(delta)
+	_step_player(delta)
+	gum.update_aim(_aim_target())
+	if player.position.y > 850:
+		player.position = spawn_position
+		player.reset_motion()
+		player.afterimages.clear()
+		gum.detach("TITLE RESET")
+
+func _begin_exit() -> void:
+	if restarting or exit_door.started:
+		return
+	var vertical_speed: float = player.velocity.y
+	gum.detach("TITLE GOAL")
+	gum.hide()
+	player.reset_motion()
+	player.afterimages.clear()
+	$LandingDustEffect.stop()
+	exit_door.begin(player, vertical_speed)
 
 func _start() -> void:
-	if get_tree().has_meta(&"checkpoint_respawn"):
-		get_tree().remove_meta(&"checkpoint_respawn")
-	var error := get_tree().change_scene_to_file(GAME_SCENE)
-	if error != OK:
-		push_error("Cannot open %s: %s" % [GAME_SCENE, error_string(error)])
+	if restarting:
+		return
+	restarting = true
+	if get_tree().has_meta(RESPAWN_META):
+		get_tree().remove_meta(RESPAWN_META)
+	get_tree().call_deferred("change_scene_to_file", GAME_SCENE)
 
-func _update_replay() -> void:
-	replay_button.disabled = not ReplayStore.available()
-	replay_button.focus_mode = Control.FOCUS_NONE if replay_button.disabled else Control.FOCUS_ALL
+func _on_checkpoint_reached(checkpoint: Area2D) -> void:
+	if restarting or exit_door.started or checkpoint.activated:
+		return
+	checkpoint.activate()
+	spawn_position = checkpoint.respawn_position()
+	SoundEffects.play(&"checkpoint")

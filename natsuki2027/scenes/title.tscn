@@ -1,114 +1,178 @@
-[gd_scene format=3 uid="uid://bl2mo0py74wvw"]
+[gd_scene format=4 uid="uid://bl2mo0py74wvw"]
 
-[ext_resource type="Script" uid="uid://nbr2jvdjiry8" path="res://scripts/title.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://sj1lyi3ow855" path="res://assets/title/title_background.png" id="2"]
+[ext_resource type="PackedScene" uid="uid://bkcjfo8j82sw1" path="res://scenes/characters/player.tscn" id="2"]
+[ext_resource type="Script" uid="uid://dn8lthsdojpa8" path="res://scripts/gum_connection.gd" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/moving_platform.tscn" id="4_7af2g"]
+[ext_resource type="Script" uid="uid://u8k8p2pfl30i" path="res://scripts/moving_platform.gd" id="5_81wt4"]
+[ext_resource type="Resource" uid="uid://cg8q5jqsbnmcs" path="res://resources/game_settings.tres" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/effects/gum_attachment_effect.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/effects/landing_dust_effect.tscn" id="8"]
+[ext_resource type="Script" uid="uid://cv488pcxuwl1w" path="res://scripts/gum_shot_particles.gd" id="9"]
+[ext_resource type="Script" uid="uid://cjfldbpaik30q" path="res://scripts/gum_hit_particles.gd" id="10"]
+[ext_resource type="Script" uid="uid://64manah8i08" path="res://scripts/gum_hit_shockwave.gd" id="11"]
+[ext_resource type="Theme" uid="uid://0u8bby60ru0p" path="res://resources/debug_theme.tres" id="theme"]
+[ext_resource type="TileSet" uid="uid://cx8raxqtl52fj" path="res://assets/tilesets/theater_tileset.tres" id="tiles"]
+[ext_resource type="Script" uid="uid://nbr2jvdjiry8" path="res://scripts/title.gd" id="title"]
 
-[sub_resource type="StyleBoxFlat" id="Normal"]
-bg_color = Color(1, 0.13, 0.61, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(1, 1, 0.94, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0.59, 0.35, 0.16, 0.5)
-shadow_size = 3
-shadow_offset = Vector2(0, 5)
+[ext_resource type="Script" path="res://scripts/breakable_title.gd" id="breakable_title"]
 
-[sub_resource type="StyleBoxFlat" id="Selected"]
-bg_color = Color(1, 0.3, 0.72, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0.29, 0.09, 0.36, 0.7)
-shadow_size = 4
-shadow_offset = Vector2(0, 5)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kcc3o"]
+size = Vector2(1280, 32)
 
-[sub_resource type="StyleBoxFlat" id="Disabled"]
-bg_color = Color(0.98, 0.85, 0.47, 0.85)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.96, 0.75, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6rcc6"]
+size = Vector2(32, 736)
 
-[node name="Title" type="Control" unique_id=667590880]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1")
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ah8jo"]
+size = Vector2(1248, 96)
 
-[node name="Artwork" type="Control" parent="." unique_id=246082320]
-anchors_preset = 0
-offset_right = 1672.0
-offset_bottom = 941.0
-mouse_filter = 2
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_blk4q"]
+size = Vector2(96, 32)
 
-[node name="Background" type="TextureRect" parent="Artwork" unique_id=1567275656]
-texture_filter = 2
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("2")
-expand_mode = 1
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8magm"]
+size = Vector2(96, 32)
 
-[node name="Menu" type="VBoxContainer" parent="Artwork" unique_id=444370051]
-layout_mode = 0
-offset_left = 366.0
-offset_top = 630.0
-offset_right = 700.0
-offset_bottom = 782.0
-theme_override_constants/separation = 18
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fgbvm"]
+size = Vector2(256, 64)
 
-[node name="Start" type="Button" parent="Artwork/Menu" unique_id=1576365130]
-custom_minimum_size = Vector2(334, 64)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vjr5h"]
+size = Vector2(32, 576)
+
+[node name="Title" type="Node2D" unique_id=583978671]
+script = ExtResource("title")
+settings = ExtResource("6")
+
+[node name="TitleLabel" type="Label" parent="." unique_id=2103401068]
+offset_left = 352.0
+offset_top = 80.0
+offset_right = 904.0
+offset_bottom = 133.0
+theme = ExtResource("theme")
+theme_override_font_sizes/font_size = 48
+text = "がんばれ！菜月さん 2027"
+script = ExtResource("breakable_title")
+
+[node name="PlacementMarkers" type="Node2D" parent="." unique_id=1818611515]
+
+[node name="PlayerSpawn" type="Marker2D" parent="PlacementMarkers" unique_id=242345337]
+position = Vector2(160, 672)
+
+[node name="Exit" type="Marker2D" parent="PlacementMarkers" unique_id=57443976]
+position = Vector2(1120, 608)
+
+[node name="Checkpoints" type="Node2D" parent="." unique_id=1098700668]
+
+[node name="MovingPlatforms" type="Node2D" parent="." unique_id=1950528303]
+
+[node name="Platform_p_0dff1f94-0e2e-4875-94aa-d92c13084737" type="AnimatableBody2D" parent="MovingPlatforms" unique_id=1799202823 instance=ExtResource("4_7af2g")]
+texture_filter = 1
+position = Vector2(1056, 96)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("5_81wt4")
+placement_id = "p_0dff1f94-0e2e-4875-94aa-d92c13084737"
+direction = "down"
+travel_cells = 6
+width_cells = 2
+
+[node name="Platform_p_e32493f4-fc22-4c69-84e0-a9054a41b588" type="AnimatableBody2D" parent="MovingPlatforms" unique_id=1597171017 instance=ExtResource("4_7af2g")]
+texture_filter = 1
+position = Vector2(96, 256)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("5_81wt4")
+placement_id = "p_e32493f4-fc22-4c69-84e0-a9054a41b588"
+direction = "up"
+travel_cells = 6
+width_cells = 2
+
+[node name="TerrainTiles" type="TileMapLayer" parent="." unique_id=1654079152]
+texture_filter = 1
+tile_map_data = PackedByteArray("AAAAAAAAAAAJAAMAAAAAAAEAAAAJAAMAAAAAAAIAAAAJAAMAAAAAAAMAAAAJAAMAAAAAAAQAAAAJAAMAAAAAAAUAAAAJAAMAAAAAAAYAAAAJAAMAAAAAAAcAAAAJAAMAAAAAAAgAAAAJAAMAAAAAAAkAAAAJAAMAAAAAAAoAAAAJAAMAAAAAAAsAAAAJAAMAAAAAAAwAAAAJAAMAAAAAAA0AAAAJAAMAAAAAAA4AAAAJAAMAAAAAAA8AAAAJAAMAAAAAABAAAAAJAAMAAAAAABEAAAAJAAMAAAAAABIAAAAJAAMAAAAAABMAAAAJAAMAAAAAABQAAAAJAAMAAAAAABUAAAAJAAMAAAAAABYAAAAJAAMAAAAAABcAAAAJAAMAAAABABUAAAAJAAMAAAABABYAAAAJAAMAAAABABcAAAAJAAMAAAACABUAAAAJAAMAAAACABYAAAAJAAMAAAACABcAAAAJAAMAAAADABUAAAAJAAMAAAADABYAAAAJAAMAAAADABcAAAAJAAMAAAAEABUAAAAJAAMAAAAEABYAAAAJAAMAAAAEABcAAAAJAAMAAAAFABUAAAAJAAMAAAAFABYAAAAJAAMAAAAFABcAAAAJAAMAAAAGABUAAAAJAAMAAAAGABYAAAAJAAMAAAAGABcAAAAJAAMAAAAHABUAAAAJAAMAAAAHABYAAAAJAAMAAAAHABcAAAAJAAMAAAAIABUAAAAJAAMAAAAIABYAAAAJAAMAAAAIABcAAAAJAAMAAAAJABUAAAAJAAMAAAAJABYAAAAJAAMAAAAJABcAAAAJAAMAAAAKABUAAAAJAAMAAAAKABYAAAAJAAMAAAAKABcAAAAJAAMAAAALABUAAAAJAAMAAAALABYAAAAJAAMAAAALABcAAAAJAAMAAAAMABUAAAAJAAMAAAAMABYAAAAJAAMAAAAMABcAAAAJAAMAAAANAA0AAAAKAAMAAAANABUAAAAJAAMAAAANABYAAAAJAAMAAAANABcAAAAJAAMAAAAOABUAAAAJAAMAAAAOABYAAAAJAAMAAAAOABcAAAAJAAMAAAAPABUAAAAJAAMAAAAPABYAAAAJAAMAAAAPABcAAAAJAAMAAAAQABUAAAAJAAMAAAAQABYAAAAJAAMAAAAQABcAAAAJAAMAAAARABUAAAAJAAMAAAARABYAAAAJAAMAAAARABcAAAAJAAMAAAASABUAAAAJAAMAAAASABYAAAAJAAMAAAASABcAAAAJAAMAAAATAA0AAAAKAAMAAAATABUAAAAJAAMAAAATABYAAAAJAAMAAAATABcAAAAJAAMAAAAUAA0AAAAKAAMAAAAUABUAAAAJAAMAAAAUABYAAAAJAAMAAAAUABcAAAAJAAMAAAAVAA0AAAAKAAMAAAAVABUAAAAJAAMAAAAVABYAAAAJAAMAAAAVABcAAAAJAAMAAAAWABUAAAAJAAMAAAAWABYAAAAJAAMAAAAWABcAAAAJAAMAAAAXABUAAAAJAAMAAAAXABYAAAAJAAMAAAAXABcAAAAJAAMAAAAYABUAAAAJAAMAAAAYABYAAAAJAAMAAAAYABcAAAAJAAMAAAAZABUAAAAJAAMAAAAZABYAAAAJAAMAAAAZABcAAAAJAAMAAAAaABUAAAAJAAMAAAAaABYAAAAJAAMAAAAaABcAAAAJAAMAAAAbABUAAAAJAAMAAAAbABYAAAAJAAMAAAAbABcAAAAJAAMAAAAcABUAAAAJAAMAAAAcABYAAAAJAAMAAAAcABcAAAAJAAMAAAAdABUAAAAJAAMAAAAdABYAAAAJAAMAAAAdABcAAAAJAAMAAAAeABUAAAAJAAMAAAAeABYAAAAJAAMAAAAeABcAAAAJAAMAAAAfABUAAAAJAAMAAAAfABYAAAAJAAMAAAAfABcAAAAJAAMAAAAgABMAAAAJAAMAAAAgABQAAAAJAAMAAAAgABUAAAAJAAMAAAAgABYAAAAJAAMAAAAgABcAAAAJAAMAAAAhABMAAAAJAAMAAAAhABQAAAAJAAMAAAAhABUAAAAJAAMAAAAhABYAAAAJAAMAAAAhABcAAAAJAAMAAAAiABMAAAAJAAMAAAAiABQAAAAJAAMAAAAiABUAAAAJAAMAAAAiABYAAAAJAAMAAAAiABcAAAAJAAMAAAAjABMAAAAJAAMAAAAjABQAAAAJAAMAAAAjABUAAAAJAAMAAAAjABYAAAAJAAMAAAAjABcAAAAJAAMAAAAkABMAAAAJAAMAAAAkABQAAAAJAAMAAAAkABUAAAAJAAMAAAAkABYAAAAJAAMAAAAkABcAAAAJAAMAAAAlABMAAAAJAAMAAAAlABQAAAAJAAMAAAAlABUAAAAJAAMAAAAlABYAAAAJAAMAAAAlABcAAAAJAAMAAAAmABMAAAAJAAMAAAAmABQAAAAJAAMAAAAmABUAAAAJAAMAAAAmABYAAAAJAAMAAAAmABcAAAAJAAMAAAAnAAAAAAAJAAMAAAAnAAEAAAAJAAMAAAAnAAIAAAAJAAMAAAAnAAMAAAAJAAMAAAAnAAQAAAAJAAMAAAAnAAUAAAAJAAMAAAAnAAYAAAAJAAMAAAAnAAcAAAAJAAMAAAAnAAgAAAAJAAMAAAAnAAkAAAAJAAMAAAAnAAoAAAAJAAMAAAAnAAsAAAAJAAMAAAAnAAwAAAAJAAMAAAAnAA0AAAAJAAMAAAAnAA4AAAAJAAMAAAAnAA8AAAAJAAMAAAAnABAAAAAJAAMAAAAnABEAAAAJAAMAAAAnABIAAAAJAAMAAAAnABMAAAAJAAMAAAAnABQAAAAJAAMAAAAnABUAAAAJAAMAAAAnABYAAAAJAAMAAAAnABcAAAAJAAMAAAABAAAAAAAKAAMAAAACAAAAAAAKAAMAAAADAAAAAAAKAAMAAAAEAAAAAAAKAAMAAAAFAAAAAAAKAAMAAAAGAAAAAAAKAAMAAAAHAAAAAAAKAAMAAAAIAAAAAAAKAAMAAAAJAAAAAAAKAAMAAAAKAAAAAAAKAAMAAAALAAAAAAAKAAMAAAAMAAAAAAAKAAMAAAANAAAAAAAKAAMAAAAOAAAAAAAKAAMAAAAPAAAAAAAKAAMAAAAQAAAAAAAKAAMAAAARAAAAAAAKAAMAAAASAAAAAAAKAAMAAAATAAAAAAAKAAMAAAAUAAAAAAAKAAMAAAAVAAAAAAAKAAMAAAAWAAAAAAAKAAMAAAAXAAAAAAAKAAMAAAAYAAAAAAAKAAMAAAAZAAAAAAAKAAMAAAAaAAAAAAAKAAMAAAAbAAAAAAAKAAMAAAAcAAAAAAAKAAMAAAAdAAAAAAAKAAMAAAAeAAAAAAAKAAMAAAAfAAAAAAAKAAMAAAAgAAAAAAAKAAMAAAAhAAAAAAAKAAMAAAAiAAAAAAAKAAMAAAAjAAAAAAAKAAMAAAAkAAAAAAAKAAMAAAAlAAAAAAAKAAMAAAAmAAAAAAAKAAMAAAALAA0AAAAKAAMAAAAMAA0AAAAKAAMAAAA=")
+tile_set = ExtResource("tiles")
+collision_enabled = false
+
+[node name="OneWayPlatforms" type="TileMapLayer" parent="." unique_id=2126134125]
+texture_filter = 1
+tile_map_data = PackedByteArray("AAAIAAgAAQAAAAAAAAAJAAgAAQAAAAAAAAAKAAgAAQAAAAAAAAABABEAAQAAAAAAAAACABEAAQAAAAAAAAADABEAAQAAAAAAAAA=")
+tile_set = ExtResource("tiles")
+
+[node name="GumPassBarriers" type="TileMapLayer" parent="." unique_id=2095127431]
+texture_filter = 1
+tile_set = ExtResource("tiles")
+
+[node name="GumAnchors" type="TileMapLayer" parent="." unique_id=1083344363]
+texture_filter = 1
+tile_map_data = PackedByteArray("AAAIABAAAgAAAAAAAAAQABAAAgAAAAAAAAAYABAAAgAAAAAAAAAdABAAAgAAAAAAAAAQAAYAAgAAAAAAAAAGAAsAAgAAAAAAAAAQAAsAAgAAAAAAAAAaAAsAAgAAAAAAAAAeAAsAAgAAAAAAAAA=")
+tile_set = ExtResource("tiles")
+physics_quadrant_size = 1
+
+[node name="Terrain" type="StaticBody2D" parent="." unique_id=1649300631]
+collision_mask = 2
+
+[node name="Surface00" type="CollisionShape2D" parent="Terrain" unique_id=107088624]
+position = Vector2(640, 16)
+shape = SubResource("RectangleShape2D_kcc3o")
+
+[node name="Surface01" type="CollisionShape2D" parent="Terrain" unique_id=214997864]
+position = Vector2(16, 400)
+shape = SubResource("RectangleShape2D_6rcc6")
+
+[node name="Surface02" type="CollisionShape2D" parent="Terrain" unique_id=1525287411]
+position = Vector2(656, 720)
+shape = SubResource("RectangleShape2D_ah8jo")
+
+[node name="Surface03" type="CollisionShape2D" parent="Terrain" unique_id=1701049720]
+position = Vector2(400, 432)
+shape = SubResource("RectangleShape2D_blk4q")
+
+[node name="Surface04" type="CollisionShape2D" parent="Terrain" unique_id=138149678]
+position = Vector2(656, 432)
+shape = SubResource("RectangleShape2D_8magm")
+
+[node name="Surface05" type="CollisionShape2D" parent="Terrain" unique_id=949080254]
+position = Vector2(1152, 640)
+shape = SubResource("RectangleShape2D_fgbvm")
+
+[node name="Surface06" type="CollisionShape2D" parent="Terrain" unique_id=804276769]
+position = Vector2(1264, 320)
+shape = SubResource("RectangleShape2D_vjr5h")
+
+[node name="Player" parent="." unique_id=17798164 instance=ExtResource("2")]
+position = Vector2(160, 672)
+
+[node name="Gum" type="Node2D" parent="." unique_id=1865170451]
+z_index = 5
+script = ExtResource("4")
+
+[node name="GumShotParticles" type="Node2D" parent="." unique_id=542293802]
+z_index = 4
+script = ExtResource("9")
+
+[node name="GumHitShockwave" type="Node2D" parent="." unique_id=1611868943]
+z_index = 4
+script = ExtResource("11")
+
+[node name="GumHitParticles" type="Node2D" parent="." unique_id=647908062]
+z_index = 5
+script = ExtResource("10")
+
+[node name="GumAttachmentEffect" parent="." unique_id=524252792 instance=ExtResource("7")]
+
+[node name="LandingDustEffect" parent="." unique_id=1296053373 instance=ExtResource("8")]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1607907194]
+position = Vector2(640, 384)
+
+[node name="Instructions" type="CanvasLayer" parent="." unique_id=1296311246]
+
+[node name="Panel" type="PanelContainer" parent="Instructions" unique_id=1115015901]
+offset_left = 24.0
+offset_top = 690.0
+offset_right = 1256.0
+offset_bottom = 752.0
+theme = ExtResource("theme")
+
+[node name="Text" type="Label" parent="Instructions/Panel" unique_id=1541893059]
 layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.29, 0.09, 0.36, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("Normal")
-theme_override_styles/pressed = SubResource("Selected")
-theme_override_styles/hover = SubResource("Selected")
-theme_override_styles/focus = SubResource("Selected")
-text = "START"
-
-[node name="Replay" type="Button" parent="Artwork/Menu" unique_id=132884089]
-custom_minimum_size = Vector2(334, 64)
-layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_focus_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.29, 0.09, 0.36, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_disabled_color = Color(0.43, 0.32, 0.37, 1)
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("Normal")
-theme_override_styles/pressed = SubResource("Selected")
-theme_override_styles/hover = SubResource("Selected")
-theme_override_styles/disabled = SubResource("Disabled")
-theme_override_styles/focus = SubResource("Selected")
-disabled = true
-text = "RELAY再生"
+text = "← → / A D：移動　 Z / ×：ジャンプ　 X / □：ロープ　 R：やり直し"
+horizontal_alignment = 1

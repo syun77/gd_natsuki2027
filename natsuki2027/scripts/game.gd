@@ -95,7 +95,7 @@ func _ready() -> void:
 	camera.position = player.position
 	camera.zoom = Vector2.ONE * settings.camera_normal_zoom
 	_setup_entrance()
-	_setup_exit()
+	_setup_exit($TheaterStage)
 	ReplayStore.begin(self)
 
 func _setup_puzzle_props() -> void:
@@ -262,12 +262,12 @@ func _door_floor_position(marker_position: Vector2) -> Vector2:
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	return hit.position if not hit.is_empty() else marker_position
 
-func _setup_exit() -> void:
+func _setup_exit(stage: Node) -> void:
 	exit_door = preload("res://scripts/stage_exit.gd").new()
 	exit_door.name = "StageExit"
 	add_child(exit_door)
 	move_child(exit_door, player.get_index())
-	exit_door.global_position = _door_floor_position($TheaterStage/PlacementMarkers/Exit.global_position)
+	exit_door.global_position = _door_floor_position(stage.get_node("PlacementMarkers/Exit").global_position)
 	exit_door.player_entered.connect(_begin_exit)
 
 func _begin_exit() -> void:
@@ -348,6 +348,15 @@ func _physics_process(delta: float) -> void:
 		for platform in platforms.get_children():
 			if platform is MovingPlatform:
 				platform.step(delta)
+	_step_player(delta)
+	var movement: Vector2 = player_shape.global_position - previous_shape_transform.origin
+	if _touches_spikes(previous_shape_transform, movement):
+		_die_on_spikes(previous_shape_transform.origin + movement * spike_sweep.get_closest_collision_safe_fraction())
+		return
+	_update_camera(delta)
+	gum.update_aim(_aim_target())
+
+func _step_player(delta: float) -> void:
 	gum.validate_connection()
 	var was_reeling: bool = gum.reeling_one_up()
 	var jump_requested := Input.is_action_just_pressed("jump") and not was_reeling
@@ -358,12 +367,6 @@ func _physics_process(delta: float) -> void:
 	gum.step(delta, length_input)
 	player.one_up_reel_locked = was_reeling or gum.reeling_one_up()
 	player.simulate(delta, jump_requested, attached_jump)
-	var movement: Vector2 = player_shape.global_position - previous_shape_transform.origin
-	if _touches_spikes(previous_shape_transform, movement):
-		_die_on_spikes(previous_shape_transform.origin + movement * spike_sweep.get_closest_collision_safe_fraction())
-		return
-	_update_camera(delta)
-	gum.update_aim(_aim_target())
 
 func _setup_checkpoints() -> void:
 	var checkpoints := get_node_or_null("TheaterStage/Checkpoints")

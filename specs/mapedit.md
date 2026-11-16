@@ -33,7 +33,7 @@ Swift + AppKit を使用する。キャンバスは単一のカスタム NSView 
 
 ## 初版の検証
 
-- 対象は Time Attack（692×24）とレストラン（160×24）。両方に対し、Godot エディターの配置差分と履歴を `tools/verify_mapedit.gd` で検証する。
+- 対象はタイトル（40×24）、Time Attack（692×24）、レストラン（160×24）。各シーンに対し、Godot エディターの配置差分と履歴を `tools/verify_mapedit.gd` で検証する。
 - 無編集の往復でセル ID、マーカー座標、編集対象外のノードが一致する。地形追加・削除が描画、衝突、ガム経路に一致し、Godot の Undo/Redo 一回で派生形状まで戻る。
 - 競合、壊れた JSON、未知のタイル ID、別ステージへの貼り付けでは、既存シーンへの変更が一件も発生しない。ズーム後の配置、速いドラッグ、重複セルの消去は macOS の通常操作で確認する。
 
@@ -69,3 +69,11 @@ MapEditの「破壊可能ブロック」の色設定は、TerrainTilesのソー�
 ## エディタの表示形状
 
 「タイル設定…」の「表示形状」で四角・丸・三角形を配置種別ごとに選択できる。初期値と「既定に戻す」は四角。変更は即時保存され、キャンバス・配置プレビュー・ミニマップの塗りと縁取りへ反映する。一方通行床・移動床は元の表示範囲に形状を収める。表示名・色・ショートカット・縁取りの編集でも形状は保持される。ゲームの画像・当たり判定・交換データには影響しない。
+
+## タイトルステージの往復
+
+`scenes/title.tscn` は40×24セルの編集対象。GodotとSwiftの両検証で同じstage識別子・幅を認識する。ルート直下にTerrainTiles/Terrain/OneWayPlatforms/GumAnchors/GumPassBarriers/Checkpoints/MovingPlatforms/PlacementMarkersを持つ。画像背景・文字・操作案内・プレイヤー・VFXはコピー対象外。アイテムやトゲのレイヤーは用意しない。
+
+コピー/直接転送/競合検証/一回のUndo/Redoは他ステージと同じ経路を使う。TerrainTilesの占有セルからTerrainを更新し、古いPolygon2Dの床描画は持たない。PlayerSpawn/Exitはtitle.gdの実出現位置と開始ドアを決める。移動床はタイトルの固定更新で動かし、チェックポイントは落下時の練習復帰位置を更新する。Rはシーンを初期化する。タイトルに時計や残機消費はない。
+
+`verify_mapedit.gd` はタイトルで無編集往復・セル/リング/一方通行床/開始終了/checkpoint/移動床変更・地形矩形同期・pack・Undo/Redoを確認する。出力 `/tmp/mapedit-title.json` をSwift tests実行ファイルの任意引数に渡すと、実際のGodotコピーJSONのSwift読込も検証する。`verify_time_attack.gd` は編集マーカー/移動床/練習checkpointのruntime反映と本編開始を検証する。

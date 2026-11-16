@@ -1,30 +1,29 @@
 # タイトル画面
 
-F5起動は `scenes/title.tscn`。`images/菜月さん/タイトル画面.png` を参考に、黄色の背景・ピンクのガム・左のKAWAII BLASTER!ロゴ・右の菜月さんを使う。メニューは次の2項目のみ。
+F5起動は `scenes/title.tscn`。1280×768の小さな操作可能ステージで、左の菜月さんを動かし、右の64px段差にあるゴールドアへ入ると `scenes/game_time_attack.tscn` を新規開始する。ドア接触後は本編と共通の着地・中央への移動・開閉演出を行い、閉扉SEの終了後に遷移する。チェックポイント復帰情報は開始時に消す。
 
-|表示|動作|
-|---|---|
-|START|チェックポイント復帰情報を消し、Time Attackを新規開始|
-|RELAY再生|リプレイ機能無効化中につき常にグレーアウト、選択不可|
+操作は本編と同じ。矢印／A・Dで移動、Z／Crossでジャンプ・ガム解除、X／Squareでガム、矢印／方向パッド／左スティックで照準。Rでタイトルステージをやり直す。床・両端の壁・段差はStaticBody2Dで、ガムを接着できる。タイトルに制限時間・残機消費・得点・結果表示・ポーズメニュー・リプレイ項目は設けない。タイマーや記録、BGMの新規再生も開始しない。本編からの帰還時は既存のBGMフェードを継続する。
 
-表記はユーザー指定の「RELAY再生」。マウス、標準UIの方向入力と決定（キーボード／ゲームパッド）で選択する。リプレイデータの読み込み・記録・保存は行わない。初期フォーカスはSTART。直接再生シーンを実行してもタイトルへ戻す。
+`title.gd` はGameを継承し、本編と同じ `_step_player`（接続検証→入力→ガム→Player.simulate）を固定更新で呼ぶ。Player/Gum/設定/VFXは同じリソースを使う。タイトル専用の準備・固定カメラ・ゴール遷移を持ち、本編の計測や収集初期化は呼ばない。ステージ形状と操作案内はtitle.tscnで編集する。
 
-背景原本は `images/title/title_background.png`、同一runtimeコピーは `assets/title/title_background.png`。元参考画像は保持する。背景と操作可能なButtonは別で、メニュー位置や書式はtitle.tscnで編集する。1672×941の共通キャンバスを画面全体を覆う比率で拡縮・中央配置し、標準1280×768では左右をわずかに切り取る。
+背景画像は表示しない。共通の落ち着いたtealクリア色に、文字のタイトルと操作案内を重ねる。地形描画は本編の共有TileSetを使う。キャラクター外見の参考画像 `images/菜月さん/タイトル画面.png` は保持する。
 
-背景作成はbuilt-in imagegen。最終プロンプト：
+接着できるStaticBody2D地形は連続床（上面y672）、左右壁、ゴール段差（上面y608）、浮き足場2個（192×32px、中心384/432と704/432）。見た目の矩形と衝突矩形を一致させ、同じガムの接着・張力・角回り規則を使う。
 
-> Use case: precise-object-edit. Edit target: the supplied game title screen. Remove ONLY the menu below the KAWAII BLASTER! logo: remove pink START GAME button, its border and pointer, and CONTINUE, OPTIONS, CREDITS, QUIT text. Seamlessly fill that lower-left menu area with the existing yellow background textures. Leave that area empty for runtime menu buttons. Preserve the KAWAII BLASTER! logo, character identity/pose/white dress/blue ponytail/yellow ribbon, pink gum streaks, composition, all other artwork and 16:9 framing unchanged. Do not add any new text or buttons.
+`GumAnchors` は本編共有theater_tileset.tresのsource2/(0,0)を使う。セル(8,16)/(16,16)/(24,16)/(29,16)、中心(272,528)/(528,528)/(784,528)/(944,528)に4個配置。physics_quadrant_size=1でセル単位RIDを保ち、リング中心へ接着する。ガムのみ当たり、プレイヤーは通過できる。床上の手元から射程160pxで真上へ狙える高さとし、足場下や床から気軽に試せる。配置正本はtitle.tscnで、generatorは使わない。
 
-検証は `verify_time_attack.gd` の起動・2項目・START・タイトル帰還、`verify_replay.gd` のRELAY再生遷移を使う。
+検証は `verify_time_attack.gd` の画像背景不在・4リングのray/非地形衝突・足場下面の実衝突・実入力による床/リング接着・ジャンプによるゴール到達・ドア終了後の新規開始・タイトル帰還を使う。`verify_replay.gd` はリプレイ無効化を確認する。
 
-## キャラクター合成用の背景素材
+## MapEditでの編集
 
-`images/title/title_background_no_character.png` は1672×941の人物なし背景。右の人物、発射点の手、左下の人物透かし、足元の影を除去し、ロゴと黄/ピンクの背景を残す。後で `images/菜月さん/菜月さん3.png` を重ねるための素材で、現行runtime背景とは別に保持する。
+Godotでtitle.tscnを直接開いて「MapEdit: Copy gameplay placements」を実行する。MapEditを更新後に起動し直し、⌘Vで取り込んで編集、「Godot に送る」で差分確認後にシーンを保存する。範囲40×24セル、32pxグリッド。地形はルート直下TerrainTiles、衝突はTerrainの派生矩形。床上面y672、棚はy416〜448、ゴール段差はx1024〜1248/y608〜672。編集後は保存配置を正本とする。
 
-built-in imagegenで作成。最終プロンプト：既存背景からすべての人物・手・人物透かし・影を除去し、黄色のグラデーション、網点、斜線、ピンクのガム軌跡で自然に補完する。KAWAII BLASTER!ロゴの文字・位置・サイズ、色調、構図、空のメニュー領域を維持。ビーム終端は手形のない光にする。人物・新規文字・ボタンを追加しない。
+OneWayPlatforms/GumAnchors/GumPassBarriersと移動床、開始・終了マーカー、練習チェックポイントを編集できる。PlayerSpawnが出現位置、Exitがドア位置を決める。チェックポイントは接触で有効になり、落下時の復帰位置を更新する。Rでタイトル全体を初期化する。地形の転送は衝突矩形まで一回のUndo/Redoで同期する。
 
-## 分離レイヤー素材
+## 一文字ごとの破壊
 
-`images/title/layers/` の `title_background.png` は黄色背景のみ（1672×941）、`title_effects.png` はピンク/白のビーム・光・軌跡（1672×941、透過RGBA）、`title_logo.png` はKAWAII BLASTER!と周囲の軌道/星（1671×941、透過RGBA）。各画像の左上を同じ位置に置き、背景→エフェクト→ロゴの順で重ねる。ロゴは生成出力が横1px短いため、幅を揃える拡大はせず原寸配置する。現行runtimeへの組込みは別作業。生成再構成であり元画像とのピクセル一致ではない。
+TitleLabelにbreakable_title.gdを付け、保存済みLabelの文字列・位置・Theme・文字サイズを編集用正本とする。エディタでは通常のLabelを表示し、実行時だけ空白を除く各文字をtitle_letter.gdのStaticBody2DとLabelへ分割する。文字のX位置は同じFontで測った文字列先頭からの幅、判定は文字の送り幅×フォント高さ。文字列自体は変更しない。
 
-built-in imagegen使用。最終プロンプト要旨（個別生成）：背景はロゴ/ピンクの効果を除去し黄色模様で補完。エフェクトはビーム/光/軌跡のみ抽出し黄色背景とロゴを透明化。ロゴは文字/縁/軌道/星のみ抽出して他を透明化。構図・配置・文字を維持し人物や文字を追加しない。
+各文字はガム専用layer16、mask0で、プレイヤーや箱を遮らず、地形の角回りには参加しない。ガムの実際の飛行先端が当たった一文字だけが消え、文字色の破片16個が0.45秒飛散する。照準プレビューだけでは壊れない。命中時はcrash SEを一度再生し、接着・張力を発生させずガムを戻す。隣の文字と地形/配置は維持する。Rのシーン再読込とタイトル再入場で全文を復元する。得点や本編開始条件には影響しない。
+
+MapEditのコピー/転送は文字やruntime破壊状態を扱わない。verify_breakable_terrain.gdで全非空白文字への実ray/先端到達、隣字保持、非衝突、破片終了と再入場復元を既存の破壊ブロック回帰と一緒に検証する。
